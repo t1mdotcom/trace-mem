@@ -36,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hotkeyItem = NSMenuItem(title: "", action: #selector(changeHotkey), keyEquivalent: "")
     private let modeItem = NSMenuItem(title: "", action: #selector(toggleMode), keyEquivalent: "")
     private let providerMenu = NSMenu()
+    private let micMenu = NSMenu()
     private var lastError: String?
 
     var state: AppState = .idle {
@@ -66,6 +67,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(hotkeyItem)
         menu.addItem(modeItem)
         refreshHotkeyItems()
+        let micItem = NSMenuItem(title: "Mikrofon", action: nil, keyEquivalent: "")
+        micItem.submenu = micMenu
+        menu.addItem(micItem)
         let providerItem = NSMenuItem(title: "Text-Cleanup", action: nil, keyEquivalent: "")
         for p in Settings.Provider.allCases {
             let it = NSMenuItem(title: Self.providerTitle(p), action: #selector(pickProvider(_:)), keyEquivalent: "")
@@ -104,7 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         state = .recording
         indicator.show(status: "…", level: { [unowned self] in dictation.level })
         startTask = Task { [unowned self] in
-            do { try await dictation.start(locale: await Dictation.resolveLocale(settings.locale)) }
+            do { try await dictation.start(locale: await Dictation.resolveLocale(settings.locale), inputDeviceUID: settings.inputDeviceUID) }
             catch { fail("Aufnahme: \(error.localizedDescription)"); indicator.hide() }
         }
     }
@@ -165,6 +169,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshHotkeyItems()
     }
 
+    // MARK: microphone (V15)
+
+    private func rebuildMicMenu() {
+        micMenu.removeAllItems()
+        let auto = NSMenuItem(title: "Automatisch (eingebautes bevorzugt)", action: #selector(pickMic(_:)), keyEquivalent: "")
+        auto.target = self
+        auto.state = settings.inputDeviceUID == nil ? .on : .off
+        micMenu.addItem(auto)
+        micMenu.addItem(.separator())
+        for d in MicSelection.available {
+            let it = NSMenuItem(title: d.localizedName, action: #selector(pickMic(_:)), keyEquivalent: "")
+            it.target = self
+            it.representedObject = d.uniqueID
+            it.state = d.uniqueID == settings.inputDeviceUID ? .on : .off
+            micMenu.addItem(it)
+        }
+    }
+
+    @objc private func pickMic(_ sender: NSMenuItem) {
+        settings.inputDeviceUID = sender.representedObject as? String
+    }
+
     // MARK: cleanup provider (T12)
 
     private static func providerTitle(_ p: Settings.Provider) -> String {
@@ -206,5 +232,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 extension AppDelegate: NSMenuDelegate {
-    func menuWillOpen(_ menu: NSMenu) { refreshPermissions() }
+    func menuWillOpen(_ menu: NSMenu) { refreshPermissions(); rebuildMicMenu() }
 }

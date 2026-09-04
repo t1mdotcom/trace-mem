@@ -74,6 +74,7 @@ Alles läuft über das Menubar-Icon (Wellenform):
 - **Hotkey ändern…**: öffnet ein Fenster "Taste drücken". Einzelner Modifier (z. B. rechte ⌥), Kombination (z. B. ⌥ Leertaste) oder eine Taste (z. B. F5). Esc bricht ab, ⌘Q und ⌘W sind gesperrt.
 - **Modus**: Halten zum Sprechen oder Drücken für Start/Stopp.
 - **Text-Cleanup**: Apple Intelligence (on-device), Claude CLI, Codex CLI oder Aus.
+- **Mikrofon**: Automatisch (eingebautes Mikrofon bevorzugt) oder ein festes Gerät. Bluetooth-Mikros wie AirPods werden nie automatisch gewählt, weil sie sonst auf das schlechtere HFP-Profil umschalten und die Wiedergabe leidet.
 - **Beenden**.
 
 Standard-Hotkey bis zur ersten Änderung: rechte ⌥ halten.
@@ -88,13 +89,15 @@ Standard-Hotkey bis zur ersten Änderung: rechte ⌥ halten.
   "model": null,
   "hotkey": { "keyCode": 61, "modifiers": 0, "isModifierKey": true, "mode": "hold" },
   "locale": null,
-  "cleanupTimeoutMs": 3000
+  "cleanupTimeoutMs": 3000,
+  "inputDeviceUID": null
 }
 ```
 
 - `provider`: `apple` (Standard), `claude`, `codex` oder `none`. `model` gilt nur für die CLI-Provider.
 - `locale`: z. B. `de-DE` oder `en-US`. `null` nimmt die Systemsprache.
 - `hotkey.keyCode`: macOS Virtual Keycode, `modifiers`: CGEventFlags-Maske.
+- `inputDeviceUID`: `uniqueID` eines Audio-Eingabegeräts. `null` nimmt das eingebaute Mikrofon, sonst den System-Standard.
 
 ## Aufbau
 
@@ -111,6 +114,7 @@ Sources/TraceMem/
   Dictation.swift         Mikrofon → SpeechAnalyzer → Text, Asset-Download
   IndicatorPanel.swift    Floating-HUD mit Pegel und Zwischentext
   Injector.swift          Pasteboard-Snapshot, ⌘V, Restore
+  MicSelection.swift      Mikrofonwahl: Nutzer → eingebaut → Standard
   Cleanup.swift           Text-Cleanup: Apple FoundationModels / claude / codex, Timeout, Fallback
 Tests/TraceMemTests/      Matcher, Capture, Settings, Pasteboard-Snapshot, Cleanup
 Resources/Info.plist      Bundle-ID dev.theinemann.trace-mem, Usage-Descriptions

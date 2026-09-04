@@ -19,6 +19,7 @@ struct Settings: Codable, Equatable, Sendable {
     var hotkey: HotkeyBinding = .default
     var locale: String? = nil
     var cleanupTimeoutMs: Int = 3000
+    var inputDeviceUID: String? = nil
 
     static let url: URL = {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]

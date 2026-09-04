@@ -25,9 +25,9 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 - cleanup cmd (claude): `claude -p --model haiku --output-format text <prompt>` w/ raw on stdin → stdout text
 - cleanup cmd (codex): `codex exec --quiet <prompt+raw>` → stdout text
 - cleanup prompt: remove fillers (ähm, also, halt) · fix punctuation · apply spoken cmds ("neuer Absatz"→`\n\n`, "Komma"→`,`, "Punkt"→`.`) · keep language · output text only.
-- settings: `~/Library/Application Support/trace-mem/settings.json` → `{provider: "apple"|"claude"|"codex"|"none" (default apple), model?: string, hotkey: {keyCode: int, modifiers: int, isModifierKey: bool, mode: "hold"|"toggle"}, locale?: string, cleanupTimeoutMs: 3000}`
+- settings: `~/Library/Application Support/trace-mem/settings.json` → `{provider: "apple"|"claude"|"codex"|"none" (default apple), model?: string, hotkey: {keyCode: int, modifiers: int, isModifierKey: bool, mode: "hold"|"toggle"}, locale?: string, cleanupTimeoutMs: 3000, inputDeviceUID?: string}`
 - indicator: floating `NSPanel`, non-activating, bottom-center, shows waveform level + partial transcript.
-- menubar menu: status (idle/recording/transcribing/cleanup) · Hotkey ändern… (shows current binding) · hold/toggle mode · toggle cleanup · provider picker · permissions status w/ "open System Settings" links · quit.
+- menubar menu: status (idle/recording/transcribing/cleanup) · Mikrofon submenu (Automatisch + device list, rebuilt on open) · Hotkey ändern… (shows current binding) · hold/toggle mode · toggle cleanup · provider picker · permissions status w/ "open System Settings" links · quit.
 - meeting out (P2): `~/Documents/trace-mem/<YYYY-MM-DD_HH-mm>.md` → frontmatter `{start, end, duration}` + lines `[HH:MM:SS] Ich|Andere: text` + `## Zusammenfassung` ? if cleanup provider set.
 - system audio (P2): `CATapDescription` process tap (all processes, stereo mix) → `AVAudioEngine`-free `AudioUnit` HAL input → PCM buffer stream.
 - cmd: `scripts/bundle.sh` → `build/trace-mem.app` (uses `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` if `xcode-select -p` is CLT); `scripts/run.sh` → bundle + open.
@@ -49,6 +49,7 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 - V10: P2 mic + system stream timestamps from same monotonic clock; merge order by start time.
 - V11: single recording session at a time. Hotkey ignored while meeting mode active.
 - V12: hotkey capture ⊥ accepts bare Esc, ⌘Q, ⌘W (system-critical). Rejected → panel shows reason.
+- V15: mic input = user-selected device (`inputDeviceUID`) | built-in mic | system default, in that order. Bluetooth mic ⊥ auto-picked (avoids A2DP→HFP downgrade).
 - V14: release ⊥ from dirty tree | non-main branch. Tag, zip, cask sha ! consistent for same version.
 - V13: hotkey event consumed (⊥ passed to focused app) only when binding matched. All other events pass through untouched.
 
@@ -78,3 +79,4 @@ T16|.|P2: incremental Markdown writer to `~/Documents/trace-mem/`, frontmatter, 
 ## §B Bugs
 
 id|date|cause|fix
+B1|2026-09-04|`AVCaptureDevice.default(for: .audio)` picks AirPods mic → BT switches A2DP→HFP, playback quality drops|V15

@@ -49,12 +49,12 @@ final class Dictation {
         try await req.downloadAndInstall()
     }
 
-    func start(locale: Locale) async throws {
+    func start(locale: Locale, inputDeviceUID: String?) async throws {
         guard state == .idle else { return } // V11
         state = .preparing
         do {
             let transcriber = SpeechTranscriber(locale: locale, preset: .progressiveTranscription)
-            guard let mic = AVCaptureDevice.default(for: .audio) else {
+            guard let mic = MicSelection.device(preferredUID: inputDeviceUID) else {
                 throw NSError(domain: "trace-mem", code: 1, userInfo: [NSLocalizedDescriptionKey: "Kein Mikrofon gefunden"])
             }
             let provider = try await CaptureInputSequenceProvider.providerWithSession(from: mic, compatibleWith: [transcriber])
