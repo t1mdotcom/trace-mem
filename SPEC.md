@@ -50,6 +50,7 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 - V11: single recording session at a time. Hotkey ignored while meeting mode active.
 - V12: hotkey capture ⊥ accepts bare Esc, ⌘Q, ⌘W (system-critical). Rejected → panel shows reason.
 - V15: mic input = user-selected device (`inputDeviceUID`) | built-in mic | system default, in that order. Bluetooth mic ⊥ auto-picked (avoids A2DP→HFP downgrade).
+- V16: ∀ audio buffer copy → sample data preserved (unit test w/ synthetic AudioBufferList, non-zero peak).
 - V14: release ⊥ from dirty tree | non-main branch. Tag, zip, cask sha ! consistent for same version.
 - V13: hotkey event consumed (⊥ passed to focused app) only when binding matched. All other events pass through untouched.
 
@@ -70,13 +71,14 @@ T11|x|Cleanup: providers apple (FoundationModels) / claude / codex via `Process`
 T12|x|Menu: provider picker (apple/claude/codex/aus), status per phase|I.menubar
 T12a|x|Hotkey capture panel: "Taste drücken", record next key/modifier, validate, save to settings, live re-bind|I.hotkey capture,V12
 T13|x|Self-check: `swift test` → cleanup fallback logic (timeout, empty, oversize), pasteboard restore, hotkey matcher (modifier-only, key+mods, toggle state machine)|V2,V3,V7,V13
-T14|~|P2: system audio tap via `CATapDescription` → PCM stream, `NSAudioCaptureUsageDescription`|I.system audio,V1
-T15|~|P2: meeting mode: menu start/stop, 2× `SpeechTranscriber` (mic, system), merge by timestamp, labels Ich/Andere|V10,V11
+T14|x|P2: system audio tap via `CATapDescription` → PCM stream, `NSAudioCaptureUsageDescription`|I.system audio,V1
+T15|x|P2: meeting mode: menu start/stop, 2× `SpeechTranscriber` (mic, system), merge by timestamp, labels Ich/Andere|V10,V11
 T17|x|Release: `scripts/release.sh`, `VERSION` env in bundle.sh, `packaging/trace-mem.rb` cask, README install section|I.release,I.install,V14
 T18|.|Tap repo `t1mdotcom/homebrew-tap` public w/ `Casks/trace-mem.rb`; first release v0.1.0; verify `brew install --cask`|I.install
-T16|~|P2: incremental Markdown writer to `~/Documents/trace-mem/`, frontmatter, ? summary via cleanup provider|I.meeting out,V9
+T16|x|P2: incremental Markdown writer to `~/Documents/trace-mem/`, frontmatter, ? summary via cleanup provider|I.meeting out,V9
 
 ## §B Bugs
 
 id|date|cause|fix
+B2|2026-09-04|`AVAudioPCMBuffer` `mDataByteSize` = 0 until `frameLength` set → memcpy of 0 bytes → tap delivered silence, misdiagnosed as TCC denial|V16
 B1|2026-09-04|`AVCaptureDevice.default(for: .audio)` picks AirPods mic → BT switches A2DP→HFP, playback quality drops|V15

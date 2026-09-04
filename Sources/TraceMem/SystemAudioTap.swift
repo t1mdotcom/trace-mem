@@ -67,16 +67,7 @@ final class SystemAudioTap {
         var pid: AudioDeviceIOProcID?
         try Self.check(AudioDeviceCreateIOProcIDWithBlock(&pid, aggID, nil) { _, inInput, _, _, _ in
             // inInput memory is only valid during the callback → copy into an owned buffer.
-            let src = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: inInput))
-            guard let first = src.first, first.mDataByteSize > 0 else { return }
-            let frames = first.mDataByteSize / fmt.streamDescription.pointee.mBytesPerFrame
-            guard let copy = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: frames) else { return }
-            let dst = UnsafeMutableAudioBufferListPointer(copy.mutableAudioBufferList)
-            for (i, s) in src.enumerated() where i < dst.count {
-                guard let from = s.mData, let to = dst[i].mData else { continue }
-                memcpy(to, from, Int(min(s.mDataByteSize, dst[i].mDataByteSize)))
-            }
-            copy.frameLength = frames
+            guard let copy = Self.copy(inInput, format: fmt) else { return }
             cont.yield(Chunk(buffer: copy))
         }, "AudioDeviceCreateIOProcIDWithBlock")
         procID = pid
@@ -95,6 +86,22 @@ final class SystemAudioTap {
     }
 
     deinit { stop() }
+
+    /// Owned copy of a transient AudioBufferList. V16: frameLength must be set *before* memcpy —
+    /// a fresh AVAudioPCMBuffer reports mDataByteSize 0 until then (B2).
+    static func copy(_ abl: UnsafePointer<AudioBufferList>, format fmt: AVAudioFormat) -> AVAudioPCMBuffer? {
+        let src = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: abl))
+        guard let first = src.first, first.mDataByteSize > 0 else { return nil }
+        let frames = first.mDataByteSize / fmt.streamDescription.pointee.mBytesPerFrame
+        guard let copy = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: frames) else { return nil }
+        copy.frameLength = frames
+        let dst = UnsafeMutableAudioBufferListPointer(copy.mutableAudioBufferList)
+        for (i, s) in src.enumerated() where i < dst.count {
+            guard let from = s.mData, let to = dst[i].mData else { continue }
+            memcpy(to, from, Int(min(s.mDataByteSize, dst[i].mDataByteSize)))
+        }
+        return copy
+    }
 
     private static func check(_ status: OSStatus, _ what: String) throws {
         guard status == noErr else { throw CoreAudioError(status: status, what: what) }

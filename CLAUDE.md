@@ -33,8 +33,8 @@ Nach einem Rebuild verliert eine ad-hoc-signierte App die Bedienungshilfen-Freig
 
 GitHub Flow: Feature-Branch von `main`, ein Commit pro abgeschlossener §T-Task (`T<n>: <was>` + zitierte §V). Kein direkter Commit auf `main`. Remote ist GitHub, PR via `gh`.
 
-## Logs
+## Logs und Debugging
 
-```bash
-log show --last 5m --predicate 'subsystem == "dev.theinemann.trace-mem"' --style compact
-```
+- `~/Library/Logs/trace-mem.log` über `Diag.log`/`Diag.error`. `log show` liefert für diesen Prozess oft nichts, die Datei ist verlässlich.
+- Meeting-Modus per Shell umschalten: `notifyutil -p dev.theinemann.trace-mem.meeting`. Test-Audio: `say -v Anna "…"`.
+- Stille vom System-Tap heißt entweder fehlende TCC-Freigabe oder ein Kopierfehler (siehe SPEC §B B2). Erst `SystemAudioTapTests` laufen lassen.

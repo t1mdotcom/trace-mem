@@ -109,7 +109,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             lastError = p < 1 ? "Sprachmodell lädt \(Int(p * 100))%" : nil
             state = p < 1 ? .blocked : .idle
         }
-        meeting.onWarning = { [unowned self] msg in lastError = msg; state = state } // refresh status line
+        meeting.onWarning = { [unowned self] msg in lastError = msg; state = state } // nil clears; assignment refreshes the status line
         hotkey.onStart = { [unowned self] in startRecording() }
         hotkey.onStop = { [unowned self] in stopRecording() }
         refreshPermissions()

@@ -12,7 +12,7 @@ final class MeetingSession {
     private(set) var fileURL: URL?
     var onSegment: (TranscriptWriter.Segment) -> Void = { _ in }
     /// Non-fatal problems while running (e.g. system audio silent → permission missing).
-    var onWarning: (String) -> Void = { _ in }
+    var onWarning: (String?) -> Void = { _ in }
 
     private var writer: TranscriptWriter?
     private var started = Date()
@@ -73,7 +73,7 @@ final class MeetingSession {
             let rate = tap.format.sampleRate
             pumpTasks.append(Task {
                 var n = 0, sampleTime: AVAudioFramePosition = 0, yielded = 0, peak: Float = 0
-                var everHeard = false
+                var everHeard = false, warned = false
                 origins.withLock { $0["Andere"] = -Date().timeIntervalSince(started) }
                 for await chunk in tap.buffers {
                     if Task.isCancelled { break }
@@ -88,12 +88,16 @@ final class MeetingSession {
                         for i in inputs { sysCont.yield(i) }
                     } catch { Diag.error("convert: \(error)") }
                     sampleTime += AVAudioFramePosition(chunk.buffer.frameLength)
-                    if peak > 0 { everHeard = true }
+                    if peak > 0, !everHeard {
+                        everHeard = true
+                        if warned { await MainActor.run { [weak self] in self?.onWarning(nil) } }
+                    }
                     if n % 500 == 0 {
                         Diag.log("system tap: \(n) chunks, peak \(peak), inputs yielded \(yielded)")
-                        // ~5s of pure zeros right after start = TCC "System Audio Recording" denied (macOS delivers silence, no error).
-                        if n == 500, !everHeard {
-                            Diag.error("system tap silent – Systemaudio-Freigabe fehlt?")
+                        // ~30s of pure zeros = TCC "System Audio Recording" denied (macOS delivers silence, no error).
+                        if n == 3000, !everHeard {
+                            warned = true
+                            Diag.error("system tap silent for 30s – Systemaudio-Freigabe fehlt?")
                             await MainActor.run { [weak self] in self?.onWarning("Systemaudio stumm – Freigabe in Systemeinstellungen prüfen") }
                         }
                         peak = 0
