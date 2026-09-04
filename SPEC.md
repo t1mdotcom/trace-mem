@@ -8,22 +8,23 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 
 - Target: macOS ≥ 27, arm64 (`CaptureInputSequenceProvider` needs 27). Dev box: macOS 27, Xcode 27.0 beta @ `/Applications/Xcode-beta.app`, Swift 6.4. `xcode-select` currently → CLT ∴ scripts set `DEVELOPER_DIR` explicitly | user runs `sudo xcode-select -s /Applications/Xcode-beta.app`.
 - STT ! on-device: Apple Speech `SpeechAnalyzer` + `SpeechTranscriber`. ⊥ Whisper, ⊥ cloud STT. Reason: Claude/Codex subs have no STT API.
-- LLM cleanup ? optional, via subprocess `claude -p --model haiku` | `codex exec`. Uses existing sub login. ⊥ API keys in app.
+- LLM cleanup ? optional. Providers: `apple` (FoundationModels `LanguageModelSession`, on-device, **default**) | `claude` (subprocess `claude -p --model haiku`) | `codex` (subprocess `codex exec`) | `none`. CLI providers use existing sub login. ⊥ API keys in app.
 - Build: SwiftPM package (`Package.swift`, openable in Xcode directly) + `scripts/bundle.sh` → `.app` w/ Info.plist, ad-hoc codesign. ⊥ `.xcodeproj` (SwiftPM suffices; Xcode = editor/debugger).
 - Menubar app (`NSStatusItem`), `LSUIElement=true`, ⊥ dock icon, ⊥ main window in v1.
 - Langs: de + en. Locale auto | setting.
 - Out of scope: diarization, custom vocab UI, App Store, Windows/Linux.
-- Deps: Apple frameworks only (AppKit, Speech, AVFoundation, CoreAudio). ⊥ SPM deps unless §T says.
+- Deps: Apple frameworks only (AppKit, Speech, AVFoundation, CoreAudio, FoundationModels). ⊥ SPM deps unless §T says.
 
 ## §I Interfaces
 
 - hotkey: user-defined key | modifier (⌥, ⌃, fn, F-keys, any keycode) w/ optional modifier mask. Mode `hold` (press→record, release→stop) | `toggle` (press→start, press→stop). `CGEvent` tap on keyDown/keyUp/flagsChanged. Default until user sets one: right ⌥ hold. ⊥ hardcoded.
 - hotkey capture: menu item "Hotkey ändern…" → small panel "Taste drücken" → next key/modifier event recorded → saved. Esc cancels.
 - inject: `NSPasteboard` set text → `CGEvent` ⌘V → restore prior pasteboard after 200ms.
-- cleanup cmd (claude): `claude -p --model haiku --output-format text <prompt+raw>` → stdout text
+- cleanup apple: `LanguageModelSession(instructions: prompt).respond(to: raw).content`; `SystemLanguageModel.default.isAvailable` false → V2 fallback + status reason.
+- cleanup cmd (claude): `claude -p --model haiku --output-format text <prompt>` w/ raw on stdin → stdout text
 - cleanup cmd (codex): `codex exec --quiet <prompt+raw>` → stdout text
 - cleanup prompt: remove fillers (ähm, also, halt) · fix punctuation · apply spoken cmds ("neuer Absatz"→`\n\n`, "Komma"→`,`, "Punkt"→`.`) · keep language · output text only.
-- settings: `~/Library/Application Support/trace-mem/settings.json` → `{provider: "claude"|"codex"|"none", model?: string, hotkey: {keyCode: int, modifiers: int, isModifierKey: bool, mode: "hold"|"toggle"}, locale?: string, cleanupTimeoutMs: 3000}`
+- settings: `~/Library/Application Support/trace-mem/settings.json` → `{provider: "apple"|"claude"|"codex"|"none" (default apple), model?: string, hotkey: {keyCode: int, modifiers: int, isModifierKey: bool, mode: "hold"|"toggle"}, locale?: string, cleanupTimeoutMs: 3000}`
 - indicator: floating `NSPanel`, non-activating, bottom-center, shows waveform level + partial transcript.
 - menubar menu: status (idle/recording/transcribing/cleanup) · Hotkey ändern… (shows current binding) · hold/toggle mode · toggle cleanup · provider picker · permissions status w/ "open System Settings" links · quit.
 - meeting out (P2): `~/Documents/trace-mem/<YYYY-MM-DD_HH-mm>.md` → frontmatter `{start, end, duration}` + lines `[HH:MM:SS] Ich|Andere: text` + `## Zusammenfassung` ? if cleanup provider set.
@@ -60,8 +61,8 @@ T7|x|Indicator panel: floating `NSPanel`, level + partial text, show on record, 
 T8|x|Inject: pasteboard save → set → ⌘V via `CGEvent` → restore|I.inject,V3
 T9|~|End-to-end wire: hold → record → release → finalize → inject raw. Manual test in TextEdit + Claude Code terminal|V5,V11
 T10|x|Settings: load/save json, defaults, provider/model/hotkey/locale|I.settings
-T11|.|Cleanup: `Process` runner for claude/codex, prompt, timeout, sanity check, fallback raw|I.cleanup,V2,V7
-T12|.|Menu: toggle cleanup, provider picker, status per phase|I.menubar
+T11|x|Cleanup: providers apple (FoundationModels) / claude / codex via `Process`, shared prompt, timeout, sanity check, fallback raw|I.cleanup,V2,V7
+T12|x|Menu: provider picker (apple/claude/codex/aus), status per phase|I.menubar
 T12a|x|Hotkey capture panel: "Taste drücken", record next key/modifier, validate, save to settings, live re-bind|I.hotkey capture,V12
 T13|.|Self-check: `swift test` → cleanup fallback logic (timeout, empty, oversize), pasteboard restore, hotkey matcher (modifier-only, key+mods, toggle state machine)|V2,V3,V7,V13
 T14|.|P2: system audio tap via `CATapDescription` → PCM stream, `NSAudioCaptureUsageDescription`|I.system audio,V1

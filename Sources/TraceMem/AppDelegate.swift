@@ -35,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let capturePanel = HotkeyCapturePanel()
     private let hotkeyItem = NSMenuItem(title: "", action: #selector(changeHotkey), keyEquivalent: "")
     private let modeItem = NSMenuItem(title: "", action: #selector(toggleMode), keyEquivalent: "")
+    private let providerMenu = NSMenu()
     private var lastError: String?
 
     var state: AppState = .idle {
@@ -65,6 +66,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(hotkeyItem)
         menu.addItem(modeItem)
         refreshHotkeyItems()
+        let providerItem = NSMenuItem(title: "Text-Cleanup", action: nil, keyEquivalent: "")
+        for p in Settings.Provider.allCases {
+            let it = NSMenuItem(title: Self.providerTitle(p), action: #selector(pickProvider(_:)), keyEquivalent: "")
+            it.target = self
+            it.representedObject = p.rawValue
+            providerMenu.addItem(it)
+        }
+        providerItem.submenu = providerMenu
+        menu.addItem(providerItem)
+        refreshProviderItems()
         menu.addItem(.separator())
         menu.addItem(withTitle: "Beenden", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.delegate = self
@@ -105,10 +116,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await startTask?.value // short press: wait until start finished (V5)
             startTask = nil
             do {
-                let text = try await dictation.stop()
+                let raw = try await dictation.stop()
+                var text = raw
+                if !raw.isEmpty, settings.provider != .none {
+                    state = .cleanup
+                    indicator.update(text: "Cleanup…")
+                    let r = await Cleanup.run(raw, settings: settings)
+                    text = r.text
+                    if let f = r.failure { lastError = "Cleanup übersprungen: \(f.description)" }
+                }
                 indicator.hide()
                 if !text.isEmpty { await Injector.paste(text) }
-                if state == .transcribing { state = .idle }
+                if state == .transcribing || state == .cleanup { state = .idle }
             } catch {
                 indicator.hide()
                 fail("Transkription: \(error.localizedDescription)")
@@ -144,6 +163,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleMode() {
         settings.hotkey.mode = settings.hotkey.mode == .hold ? .toggle : .hold
         refreshHotkeyItems()
+    }
+
+    // MARK: cleanup provider (T12)
+
+    private static func providerTitle(_ p: Settings.Provider) -> String {
+        switch p {
+        case .apple: "Apple Intelligence (on-device)"
+        case .claude: "Claude CLI"
+        case .codex: "Codex CLI"
+        case .none: "Aus (Rohtext)"
+        }
+    }
+
+    private func refreshProviderItems() {
+        for it in providerMenu.items {
+            it.state = (it.representedObject as? String) == settings.provider.rawValue ? .on : .off
+        }
+    }
+
+    @objc private func pickProvider(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let p = Settings.Provider(rawValue: raw) else { return }
+        settings.provider = p
+        refreshProviderItems()
     }
 
     // MARK: permissions

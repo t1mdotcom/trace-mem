@@ -12,9 +12,9 @@ struct HotkeyBinding: Codable, Equatable, Sendable {
 }
 
 struct Settings: Codable, Equatable, Sendable {
-    enum Provider: String, Codable, CaseIterable, Sendable { case claude, codex, none }
+    enum Provider: String, Codable, CaseIterable, Sendable { case apple, claude, codex, none }
 
-    var provider: Provider = .claude
+    var provider: Provider = .apple
     var model: String? = nil
     var hotkey: HotkeyBinding = .default
     var locale: String? = nil
