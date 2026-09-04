@@ -44,7 +44,9 @@ enum Cleanup {
     static func run(_ raw: String, settings: Settings) async -> (text: String, failure: Failure?) {
         guard settings.provider != .none, !raw.isEmpty else { return (raw, nil) }
         do {
-            let out = try await withTimeout(.milliseconds(settings.cleanupTimeoutMs)) {
+            // CLI providers need process startup + network; 3s (apple default) would always fall back.
+            let ms = settings.provider == .apple ? settings.cleanupTimeoutMs : max(settings.cleanupTimeoutMs, 15000)
+            let out = try await withTimeout(.milliseconds(ms)) {
                 try await generate(instructions: instructions, input: raw, settings: settings)
             }
             switch validate(raw: raw, output: out) {
@@ -72,6 +74,9 @@ enum Cleanup {
 
     /// Meeting summary; nil when provider is off or generation fails (reason logged).
     static func summarize(_ transcript: String, settings: Settings) async -> (text: String?, failure: Failure?) {
+        var effective = settings
+        effective.provider = settings.summaryProvider ?? settings.provider
+        let settings = effective
         guard settings.provider != .none, !transcript.isEmpty else { return (nil, nil) }
         do {
             // ponytail: Apple on-device context is small (~4k tokens); long meetings fail → no summary. Chunking later if needed.

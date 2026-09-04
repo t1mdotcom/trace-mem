@@ -39,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hotkeyItem = NSMenuItem(title: "", action: #selector(changeHotkey), keyEquivalent: "")
     private let modeItem = NSMenuItem(title: "", action: #selector(toggleMode), keyEquivalent: "")
     private let providerMenu = NSMenu()
+    private let summaryMenu = NSMenu()
     private let micMenu = NSMenu()
     private let localeMenu = NSMenu()
     private let meeting = MeetingSession()
@@ -98,6 +99,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         providerItem.submenu = providerMenu
         menu.addItem(providerItem)
+        let summaryItem = NSMenuItem(title: "Meeting-Zusammenfassung", action: nil, keyEquivalent: "")
+        let same = NSMenuItem(title: "Wie Text-Cleanup", action: #selector(pickSummaryProvider(_:)), keyEquivalent: "")
+        same.target = self
+        summaryMenu.addItem(same)
+        summaryMenu.addItem(.separator())
+        for p in Settings.Provider.allCases {
+            let it = NSMenuItem(title: Self.providerTitle(p), action: #selector(pickSummaryProvider(_:)), keyEquivalent: "")
+            it.target = self
+            it.representedObject = p.rawValue
+            summaryMenu.addItem(it)
+        }
+        summaryItem.submenu = summaryMenu
+        menu.addItem(summaryItem)
         refreshProviderItems()
         menu.addItem(.separator())
         menu.addItem(withTitle: "Beenden", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -279,6 +293,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for it in providerMenu.items {
             it.state = (it.representedObject as? String) == settings.provider.rawValue ? .on : .off
         }
+        for it in summaryMenu.items {
+            it.state = (it.representedObject as? String) == settings.summaryProvider?.rawValue ? .on : .off
+        }
+    }
+
+    @objc private func pickSummaryProvider(_ sender: NSMenuItem) {
+        settings.summaryProvider = (sender.representedObject as? String).flatMap(Settings.Provider.init(rawValue:))
+        refreshProviderItems()
     }
 
     @objc private func pickProvider(_ sender: NSMenuItem) {

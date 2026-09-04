@@ -15,6 +15,8 @@ struct Settings: Codable, Equatable, Sendable {
     enum Provider: String, Codable, CaseIterable, Sendable { case apple, claude, codex, none }
 
     var provider: Provider = .apple
+    /// Provider for meeting summaries; nil = same as `provider`.
+    var summaryProvider: Provider? = nil
     var model: String? = nil
     var hotkey: HotkeyBinding = .default
     var locale: String? = nil
