@@ -64,13 +64,13 @@ T5|x|Audio capture: `CaptureInputSequenceProvider.providerWithSession(from: mic)
 T6|x|STT: `SpeechAnalyzer` + `SpeechTranscriber`, locale de/en, asset install w/ progress, partial + final results stream|V6,V1
 T7|x|Indicator panel: floating `NSPanel`, level + partial text, show on record, hide after inject|I.indicator
 T8|x|Inject: pasteboard save → set → ⌘V via `CGEvent` → restore|I.inject,V3
-T9|~|End-to-end wire: hold → record → release → finalize → inject raw. Manual test in TextEdit + Claude Code terminal|V5,V11
+T9|x|End-to-end wire: hold → record → release → finalize → inject raw. Manual test in TextEdit + Claude Code terminal|V5,V11
 T10|x|Settings: load/save json, defaults, provider/model/hotkey/locale|I.settings
 T11|x|Cleanup: providers apple (FoundationModels) / claude / codex via `Process`, shared prompt, timeout, sanity check, fallback raw|I.cleanup,V2,V7
 T12|x|Menu: provider picker (apple/claude/codex/aus), status per phase|I.menubar
 T12a|x|Hotkey capture panel: "Taste drücken", record next key/modifier, validate, save to settings, live re-bind|I.hotkey capture,V12
-T13|.|Self-check: `swift test` → cleanup fallback logic (timeout, empty, oversize), pasteboard restore, hotkey matcher (modifier-only, key+mods, toggle state machine)|V2,V3,V7,V13
-T14|.|P2: system audio tap via `CATapDescription` → PCM stream, `NSAudioCaptureUsageDescription`|I.system audio,V1
+T13|x|Self-check: `swift test` → cleanup fallback logic (timeout, empty, oversize), pasteboard restore, hotkey matcher (modifier-only, key+mods, toggle state machine)|V2,V3,V7,V13
+T14|~|P2: system audio tap via `CATapDescription` → PCM stream, `NSAudioCaptureUsageDescription`|I.system audio,V1
 T15|.|P2: meeting mode: menu start/stop, 2× `SpeechTranscriber` (mic, system), merge by timestamp, labels Ich/Andere|V10,V11
 T17|x|Release: `scripts/release.sh`, `VERSION` env in bundle.sh, `packaging/trace-mem.rb` cask, README install section|I.release,I.install,V14
 T18|.|Tap repo `t1mdotcom/homebrew-tap` public w/ `Casks/trace-mem.rb`; first release v0.1.0; verify `brew install --cask`|I.install
