@@ -10,13 +10,13 @@ Phase 2 (in Arbeit, siehe `SPEC.md`): Meeting-Transkription aus Mikrofon und Sys
 2. Das Mikrofon geht direkt in Apples `SpeechAnalyzer` / `SpeechTranscriber`. Das Modell läuft lokal, Audio verlässt den Rechner nicht.
 3. Ein kleines Panel unten in der Bildschirmmitte zeigt Pegel und Zwischentext.
 4. Nach dem Loslassen wird der erkannte Text über die Zwischenablage und ein synthetisches ⌘V eingefügt. Der vorherige Inhalt der Zwischenablage wird danach wiederhergestellt.
-5. Optional (geplant, T11): Nachbearbeitung des Texts über `claude -p` oder `codex exec`. Das nutzt das bestehende Abo-Login der CLI, keine API-Keys. Schlägt der Schritt fehl, wird der Rohtext eingefügt.
+5. Optionaler Text-Cleanup (Füllwörter, Interpunktion, gesprochene Befehle wie "neuer Absatz"). Standard ist Apples on-device Modell über das `FoundationModels`-Framework, alternativ `claude -p` oder `codex exec` als Subprozess mit dem bestehenden Abo-Login der CLI. Schlägt der Schritt fehl oder dauert er länger als das Timeout, wird der Rohtext eingefügt und der Grund steht in der Statuszeile.
 
 ## Voraussetzungen
 
 - macOS 27 oder neuer, Apple Silicon. Grund: `CaptureInputSequenceProvider` aus dem Speech-Framework gibt es erst ab 27.
 - Xcode 27 (Beta reicht). `xcode-select -p` muss auf Xcode zeigen, sonst nutzt `scripts/bundle.sh` automatisch `/Applications/Xcode-beta.app`.
-- Für den optionalen Cleanup-Schritt: `claude` oder `codex` CLI im `PATH` und eingeloggt.
+- Für den Cleanup-Schritt: Apple Intelligence aktiviert (Standard) oder `claude` bzw. `codex` CLI eingeloggt.
 
 ## Bauen und starten
 
@@ -59,6 +59,7 @@ Alles läuft über das Menubar-Icon (Wellenform):
 - **Berechtigungen**: Häkchen wenn erteilt, sonst Klick zum Anfordern.
 - **Hotkey ändern…**: öffnet ein Fenster "Taste drücken". Einzelner Modifier (z. B. rechte ⌥), Kombination (z. B. ⌥ Leertaste) oder eine Taste (z. B. F5). Esc bricht ab, ⌘Q und ⌘W sind gesperrt.
 - **Modus**: Halten zum Sprechen oder Drücken für Start/Stopp.
+- **Text-Cleanup**: Apple Intelligence (on-device), Claude CLI, Codex CLI oder Aus.
 - **Beenden**.
 
 Standard-Hotkey bis zur ersten Änderung: rechte ⌥ halten.
@@ -69,7 +70,7 @@ Standard-Hotkey bis zur ersten Änderung: rechte ⌥ halten.
 
 ```json
 {
-  "provider": "claude",
+  "provider": "apple",
   "model": null,
   "hotkey": { "keyCode": 61, "modifiers": 0, "isModifierKey": true, "mode": "hold" },
   "locale": null,
@@ -77,7 +78,7 @@ Standard-Hotkey bis zur ersten Änderung: rechte ⌥ halten.
 }
 ```
 
-- `provider`: `claude`, `codex` oder `none` (Cleanup-Schritt, T11).
+- `provider`: `apple` (Standard), `claude`, `codex` oder `none`. `model` gilt nur für die CLI-Provider.
 - `locale`: z. B. `de-DE` oder `en-US`. `null` nimmt die Systemsprache.
 - `hotkey.keyCode`: macOS Virtual Keycode, `modifiers`: CGEventFlags-Maske.
 
@@ -96,7 +97,8 @@ Sources/TraceMem/
   Dictation.swift         Mikrofon → SpeechAnalyzer → Text, Asset-Download
   IndicatorPanel.swift    Floating-HUD mit Pegel und Zwischentext
   Injector.swift          Pasteboard-Snapshot, ⌘V, Restore
-Tests/TraceMemTests/      Matcher, Capture, Settings, Pasteboard-Snapshot
+  Cleanup.swift           Text-Cleanup: Apple FoundationModels / claude / codex, Timeout, Fallback
+Tests/TraceMemTests/      Matcher, Capture, Settings, Pasteboard-Snapshot, Cleanup
 Resources/Info.plist      Bundle-ID dev.theinemann.trace-mem, Usage-Descriptions
 scripts/bundle.sh         swift build → .app → codesign
 scripts/run.sh            bundle + open
