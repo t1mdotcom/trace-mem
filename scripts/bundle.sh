@@ -17,7 +17,8 @@ mkdir -p "$APP/Contents/MacOS"
 cp "$BIN" "$APP/Contents/MacOS/trace-mem"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 
-# ponytail: ad-hoc signature changes every build → TCC (mic/accessibility) re-prompts.
-# Upgrade path: self-signed "trace-mem dev" cert in login keychain, sign with it.
-codesign --force --sign - "$APP"
+# Stable identity keeps TCC grants (Accessibility, Mic) across rebuilds. Ad-hoc = new cdhash per build.
+# Create once: openssl self-signed cert CN="trace-mem dev" w/ codeSigning EKU, import into login keychain.
+IDENTITY="$(security find-identity -v -p codesigning | grep -o '"trace-mem dev"' | head -1 | tr -d '"')"
+codesign --force --sign "${IDENTITY:--}" "$APP"
 echo "$APP"
