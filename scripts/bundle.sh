@@ -13,7 +13,8 @@ BIN="$(swift build -c "$CONFIG" --show-bin-path)/TraceMem"
 
 APP=build/trace-mem.app
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 cp "$BIN" "$APP/Contents/MacOS/trace-mem"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 if [[ -n "${VERSION:-}" ]]; then

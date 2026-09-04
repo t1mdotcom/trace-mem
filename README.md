@@ -114,8 +114,12 @@ Sources/TraceMem/
   Cleanup.swift           Text-Cleanup: Apple FoundationModels / claude / codex, Timeout, Fallback
 Tests/TraceMemTests/      Matcher, Capture, Settings, Pasteboard-Snapshot, Cleanup
 Resources/Info.plist      Bundle-ID dev.theinemann.trace-mem, Usage-Descriptions
+Resources/AppIcon.icns    App-Icon, erzeugt von scripts/make-icon.swift
 scripts/bundle.sh         swift build → .app → codesign
 scripts/run.sh            bundle + open
+scripts/make-icon.swift   rendert das Icon neu (swift scripts/make-icon.swift, dann iconutil)
+scripts/release.sh        Tag, GitHub-Release, Cask-Bump
+packaging/trace-mem.rb    Homebrew-Cask
 SPEC.md                   Ziel, Constraints, Interfaces, Invarianten, Tasks, Bugs
 ```
 
