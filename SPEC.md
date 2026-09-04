@@ -6,7 +6,7 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 
 ## §C Constraints
 
-- Target: macOS ≥ 26, arm64. Dev box: macOS 27, Xcode 27.0 beta @ `/Applications/Xcode-beta.app`, Swift 6.4. `xcode-select` currently → CLT ∴ scripts set `DEVELOPER_DIR` explicitly | user runs `sudo xcode-select -s /Applications/Xcode-beta.app`.
+- Target: macOS ≥ 27, arm64 (`CaptureInputSequenceProvider` needs 27). Dev box: macOS 27, Xcode 27.0 beta @ `/Applications/Xcode-beta.app`, Swift 6.4. `xcode-select` currently → CLT ∴ scripts set `DEVELOPER_DIR` explicitly | user runs `sudo xcode-select -s /Applications/Xcode-beta.app`.
 - STT ! on-device: Apple Speech `SpeechAnalyzer` + `SpeechTranscriber`. ⊥ Whisper, ⊥ cloud STT. Reason: Claude/Codex subs have no STT API.
 - LLM cleanup ? optional, via subprocess `claude -p --model haiku` | `codex exec`. Uses existing sub login. ⊥ API keys in app.
 - Build: SwiftPM package (`Package.swift`, openable in Xcode directly) + `scripts/bundle.sh` → `.app` w/ Info.plist, ad-hoc codesign. ⊥ `.xcodeproj` (SwiftPM suffices; Xcode = editor/debugger).
@@ -54,10 +54,10 @@ T1|x|SwiftPM pkg `trace-mem`, executable target, `scripts/bundle.sh` w/ Info.pli
 T2|x|Menubar app skeleton: `NSStatusItem`, menu w/ status + quit, `LSUIElement`|I.menubar
 T3|x|Permissions module: check/request mic, speech, accessibility; menu shows state + settings links|V4
 T4|x|Hotkey: `CGEvent` tap keyDown/keyUp/flagsChanged, match against settings binding, hold + toggle mode → start/stop callbacks, re-enable on timeout|I.hotkey,V8,V13
-T5|.|Audio capture: `AVAudioEngine` mic → `AsyncStream<AVAudioPCMBuffer>`, level meter|V1
-T6|.|STT: `SpeechAnalyzer` + `SpeechTranscriber`, locale de/en, asset install w/ progress, partial + final results stream|V6,V1
-T7|.|Indicator panel: floating `NSPanel`, level + partial text, show on record, hide after inject|I.indicator
-T8|.|Inject: pasteboard save → set → ⌘V via `CGEvent` → restore|I.inject,V3
+T5|x|Audio capture: `CaptureInputSequenceProvider.providerWithSession(from: mic)` (Speech fw, macOS 27 SDK) wrapped in own `AsyncStream<AnalyzerInput>` for controlled end-of-input; level via `AVCaptureAudioChannel.averagePowerLevel`|V1
+T6|x|STT: `SpeechAnalyzer` + `SpeechTranscriber`, locale de/en, asset install w/ progress, partial + final results stream|V6,V1
+T7|~|Indicator panel: floating `NSPanel`, level + partial text, show on record, hide after inject|I.indicator
+T8|~|Inject: pasteboard save → set → ⌘V via `CGEvent` → restore|I.inject,V3
 T9|.|End-to-end wire: hold → record → release → finalize → inject raw. Manual test in TextEdit + Claude Code terminal|V5,V11
 T10|x|Settings: load/save json, defaults, provider/model/hotkey/locale|I.settings
 T11|.|Cleanup: `Process` runner for claude/codex, prompt, timeout, sanity check, fallback raw|I.cleanup,V2,V7

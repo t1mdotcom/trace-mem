@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "trace-mem",
-    platforms: [.macOS(.v26)],
+    platforms: [.macOS("27.0")],
     targets: [
         .executableTarget(
             name: "TraceMem",
