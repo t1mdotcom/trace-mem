@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>trace-mem</string>
+    <key>CFBundleDisplayName</key>
+    <string>trace-mem</string>
+    <key>CFBundleIdentifier</key>
+    <string>dev.theinemann.trace-mem</string>
+    <key>CFBundleExecutable</key>
+    <string>trace-mem</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>26.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>trace-mem nimmt deine Stimme auf, um sie lokal in Text umzuwandeln.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>trace-mem wandelt Sprache on-device in Text um. Audio verlässt das Gerät nicht.</string>
+    <key>NSAudioCaptureUsageDescription</key>
+    <string>trace-mem zeichnet System-Audio auf, um Meetings lokal zu transkribieren.</string>
+</dict>
+</plist>
