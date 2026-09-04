@@ -53,7 +53,7 @@ id|status|task|cites
 T1|x|SwiftPM pkg `trace-mem`, executable target, `scripts/bundle.sh` w/ Info.plist + ad-hoc sign, `scripts/run.sh`|§C,I.cmd
 T2|x|Menubar app skeleton: `NSStatusItem`, menu w/ status + quit, `LSUIElement`|I.menubar
 T3|x|Permissions module: check/request mic, speech, accessibility; menu shows state + settings links|V4
-T4|~|Hotkey: `CGEvent` tap keyDown/keyUp/flagsChanged, match against settings binding, hold + toggle mode → start/stop callbacks, re-enable on timeout|I.hotkey,V8,V13
+T4|x|Hotkey: `CGEvent` tap keyDown/keyUp/flagsChanged, match against settings binding, hold + toggle mode → start/stop callbacks, re-enable on timeout|I.hotkey,V8,V13
 T5|.|Audio capture: `AVAudioEngine` mic → `AsyncStream<AVAudioPCMBuffer>`, level meter|V1
 T6|.|STT: `SpeechAnalyzer` + `SpeechTranscriber`, locale de/en, asset install w/ progress, partial + final results stream|V6,V1
 T7|.|Indicator panel: floating `NSPanel`, level + partial text, show on record, hide after inject|I.indicator

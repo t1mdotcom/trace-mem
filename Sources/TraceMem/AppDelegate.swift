@@ -23,8 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusLine = NSMenuItem(title: AppState.idle.rawValue, action: nil, keyEquivalent: "")
     private var permissionItems: [Permission: NSMenuItem] = [:]
     var settings = Settings.load() {
-        didSet { try? settings.save() }
+        didSet { try? settings.save(); hotkey.matcher = HotkeyMatcher(binding: settings.hotkey) }
     }
+    private lazy var hotkey = HotkeyTap(binding: settings.hotkey)
 
     var state: AppState = .idle {
         didSet {
@@ -52,6 +53,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Beenden", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.delegate = self
         statusItem.menu = menu
+
+        // ponytail: placeholder wiring; T9 replaces with record/transcribe/inject pipeline.
+        hotkey.onStart = { [unowned self] in state = .recording }
+        hotkey.onStop = { [unowned self] in state = .idle }
         refreshPermissions()
     }
 
@@ -61,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             item.title = p.granted ? p.title : "\(p.title) – fehlt, klicken zum Erteilen"
         }
         if !Permission.allGranted { state = .blocked } else if state == .blocked { state = .idle }
+        if Permission.accessibility.granted, !hotkey.isActive { hotkey.start() }
     }
 
     @objc private func requestPermission(_ sender: NSMenuItem) {
