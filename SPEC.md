@@ -12,7 +12,8 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 - Build: SwiftPM package (`Package.swift`, openable in Xcode directly) + `scripts/bundle.sh` → `.app` w/ Info.plist, ad-hoc codesign. ⊥ `.xcodeproj` (SwiftPM suffices; Xcode = editor/debugger).
 - Menubar app (`NSStatusItem`), `LSUIElement=true`, ⊥ dock icon, ⊥ main window in v1.
 - Langs: de + en. Locale auto | setting.
-- Out of scope: diarization, custom vocab UI, App Store, Windows/Linux.
+- Out of scope: diarization, custom vocab UI, App Store, Windows/Linux. Notarization ? later (needs Developer ID; swap signing identity only).
+- Distribution: GitHub Releases + Homebrew cask. Release build local (GH runners lack Xcode 27). CI ? when runner image ships Xcode 27.
 - Deps: Apple frameworks only (AppKit, Speech, AVFoundation, CoreAudio, FoundationModels). ⊥ SPM deps unless §T says.
 
 ## §I Interfaces
@@ -30,6 +31,8 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 - meeting out (P2): `~/Documents/trace-mem/<YYYY-MM-DD_HH-mm>.md` → frontmatter `{start, end, duration}` + lines `[HH:MM:SS] Ich|Andere: text` + `## Zusammenfassung` ? if cleanup provider set.
 - system audio (P2): `CATapDescription` process tap (all processes, stereo mix) → `AVAudioEngine`-free `AudioUnit` HAL input → PCM buffer stream.
 - cmd: `scripts/bundle.sh` → `build/trace-mem.app` (uses `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` if `xcode-select -p` is CLT); `scripts/run.sh` → bundle + open.
+- release: `scripts/release.sh <semver>` → `swift test` · release bundle w/ `VERSION` in plist · `build/trace-mem-<v>.zip` (ditto) · tag `v<v>` · `gh release create` w/ notes · bump `packaging/trace-mem.rb` (version, sha256) · push cask to tap repo `t1mdotcom/homebrew-tap` (`Casks/trace-mem.rb`).
+- install: `brew install --cask t1mdotcom/tap/trace-mem`. Not notarized → caveats: right-click open | `xattr -dr com.apple.quarantine`.
 - Info.plist keys ! `NSMicrophoneUsageDescription`, `NSSpeechRecognitionUsageDescription`, `LSUIElement`, `NSAudioCaptureUsageDescription` (P2).
 
 ## §V Invariants
@@ -46,6 +49,7 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 - V10: P2 mic + system stream timestamps from same monotonic clock; merge order by start time.
 - V11: single recording session at a time. Hotkey ignored while meeting mode active.
 - V12: hotkey capture ⊥ accepts bare Esc, ⌘Q, ⌘W (system-critical). Rejected → panel shows reason.
+- V14: release ⊥ from dirty tree | non-main branch. Tag, zip, cask sha ! consistent for same version.
 - V13: hotkey event consumed (⊥ passed to focused app) only when binding matched. All other events pass through untouched.
 
 ## §T Tasks
@@ -67,6 +71,8 @@ T12a|x|Hotkey capture panel: "Taste drücken", record next key/modifier, validat
 T13|.|Self-check: `swift test` → cleanup fallback logic (timeout, empty, oversize), pasteboard restore, hotkey matcher (modifier-only, key+mods, toggle state machine)|V2,V3,V7,V13
 T14|.|P2: system audio tap via `CATapDescription` → PCM stream, `NSAudioCaptureUsageDescription`|I.system audio,V1
 T15|.|P2: meeting mode: menu start/stop, 2× `SpeechTranscriber` (mic, system), merge by timestamp, labels Ich/Andere|V10,V11
+T17|x|Release: `scripts/release.sh`, `VERSION` env in bundle.sh, `packaging/trace-mem.rb` cask, README install section|I.release,I.install,V14
+T18|.|Tap repo `t1mdotcom/homebrew-tap` public w/ `Casks/trace-mem.rb`; first release v0.1.0; verify `brew install --cask`|I.install
 T16|.|P2: incremental Markdown writer to `~/Documents/trace-mem/`, frontmatter, ? summary via cleanup provider|I.meeting out,V9
 
 ## §B Bugs

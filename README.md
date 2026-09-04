@@ -18,6 +18,20 @@ Phase 2 (in Arbeit, siehe `SPEC.md`): Meeting-Transkription aus Mikrofon und Sys
 - Xcode 27 (Beta reicht). `xcode-select -p` muss auf Xcode zeigen, sonst nutzt `scripts/bundle.sh` automatisch `/Applications/Xcode-beta.app`.
 - Für den Cleanup-Schritt: Apple Intelligence aktiviert (Standard) oder `claude` bzw. `codex` CLI eingeloggt.
 
+## Installation
+
+```bash
+brew install --cask t1mdotcom/tap/trace-mem
+```
+
+Die App ist selbstsigniert und nicht notarisiert. Beim ersten Start Rechtsklick → Öffnen, oder:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/trace-mem.app
+```
+
+Danach im Menubar-Menü Mikrofon und Bedienungshilfen erlauben.
+
 ## Bauen und starten
 
 ```bash
@@ -116,6 +130,16 @@ Logs:
 ```bash
 log show --last 5m --predicate 'subsystem == "dev.theinemann.trace-mem"' --style compact
 ```
+
+## Release
+
+```bash
+scripts/release.sh 0.2.0 [../homebrew-tap]
+```
+
+Läuft nur auf sauberem, mit `origin/main` synchronem `main`. Schritte: Tests, Release-Build mit Version im Info.plist, Zip, Git-Tag, GitHub-Release mit generierten Notes, Cask-Bump in `packaging/trace-mem.rb`, Kopie nach `<tap>/Casks/` und Push. Der Tap ist das Repo `t1mdotcom/homebrew-tap`.
+
+Release-Builds laufen lokal, weil GitHub-Runner noch kein Xcode 27 haben. Notarisierung fehlt, dafür wäre eine Apple Developer ID nötig. Dann nur die Signing-Identität in `scripts/bundle.sh` tauschen.
 
 ## Nicht im Umfang
 

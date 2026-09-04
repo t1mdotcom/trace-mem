@@ -16,6 +16,10 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
 cp "$BIN" "$APP/Contents/MacOS/trace-mem"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+if [[ -n "${VERSION:-}" ]]; then
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" \
+                            -c "Set :CFBundleVersion $(git rev-list --count HEAD)" "$APP/Contents/Info.plist"
+fi
 
 # Stable identity keeps TCC grants (Accessibility, Mic) across rebuilds. Ad-hoc = new cdhash per build.
 # Create once: openssl self-signed cert CN="trace-mem dev" w/ codeSigning EKU, import into login keychain.
