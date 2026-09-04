@@ -1,4 +1,5 @@
 import AppKit
+import os
 
 enum AppState: String {
     case idle = "Bereit"
@@ -19,6 +20,8 @@ enum AppState: String {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private static let log = Logger(subsystem: "dev.theinemann.trace-mem", category: "app")
+
     private var statusItem: NSStatusItem!
     private let statusLine = NSMenuItem(title: AppState.idle.rawValue, action: nil, keyEquivalent: "")
     private var permissionItems: [Permission: NSMenuItem] = [:]
@@ -26,10 +29,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         didSet { try? settings.save(); hotkey.matcher = HotkeyMatcher(binding: settings.hotkey) }
     }
     private lazy var hotkey = HotkeyTap(binding: settings.hotkey)
+    private let dictation = Dictation()
+    private let indicator = IndicatorPanel()
+    private var startTask: Task<Void, Never>?
+    private var lastError: String?
 
     var state: AppState = .idle {
         didSet {
-            statusLine.title = state.rawValue
+            statusLine.title = lastError.map { "\(state.rawValue) – \($0)" } ?? state.rawValue
             statusItem.button?.image = NSImage(systemSymbolName: state.symbol, accessibilityDescription: state.rawValue)
         }
     }
@@ -54,18 +61,67 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.delegate = self
         statusItem.menu = menu
 
-        // ponytail: placeholder wiring; T9 replaces with record/transcribe/inject pipeline.
-        hotkey.onStart = { [unowned self] in state = .recording }
-        hotkey.onStop = { [unowned self] in state = .idle }
+        dictation.onUpdate = { [unowned self] text in indicator.update(text: text) }
+        dictation.onAssetProgress = { [unowned self] p in
+            lastError = p < 1 ? "Sprachmodell lädt \(Int(p * 100))%" : nil
+            state = p < 1 ? .blocked : .idle
+        }
+        hotkey.onStart = { [unowned self] in startRecording() }
+        hotkey.onStop = { [unowned self] in stopRecording() }
         refreshPermissions()
+
+        Task { [unowned self] in
+            do { try await dictation.ensureAssets(locale: await Dictation.resolveLocale(settings.locale)) }
+            catch { fail("Sprachmodell: \(error.localizedDescription)") }
+        }
     }
+
+    // MARK: pipeline (T9): hold → record → release → finalize → inject
+
+    private func startRecording() {
+        guard state == .idle, startTask == nil else { return } // V11
+        lastError = nil
+        state = .recording
+        indicator.show(status: "…", level: { [unowned self] in dictation.level })
+        startTask = Task { [unowned self] in
+            do { try await dictation.start(locale: await Dictation.resolveLocale(settings.locale)) }
+            catch { fail("Aufnahme: \(error.localizedDescription)"); indicator.hide() }
+        }
+    }
+
+    private func stopRecording() {
+        guard state == .recording else { return }
+        state = .transcribing
+        Task { [unowned self] in
+            await startTask?.value // short press: wait until start finished (V5)
+            startTask = nil
+            do {
+                let text = try await dictation.stop()
+                indicator.hide()
+                if !text.isEmpty { await Injector.paste(text) }
+                if state == .transcribing { state = .idle }
+            } catch {
+                indicator.hide()
+                fail("Transkription: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func fail(_ message: String) {
+        Self.log.error("\(message)")
+        lastError = message
+        state = .blocked
+    }
+
+    // MARK: permissions
 
     func refreshPermissions() {
         for (p, item) in permissionItems {
             item.state = p.granted ? .on : .off
             item.title = p.granted ? p.title : "\(p.title) – fehlt, klicken zum Erteilen"
         }
-        if !Permission.allGranted { state = .blocked } else if state == .blocked { state = .idle }
+        if !Permission.allGranted { lastError = "Berechtigung fehlt"; state = .blocked }
+        else if state == .blocked, lastError == "Berechtigung fehlt" { lastError = nil; state = .idle }
         if Permission.accessibility.granted, !hotkey.isActive { hotkey.start() }
     }
 
