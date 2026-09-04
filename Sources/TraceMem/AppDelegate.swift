@@ -21,6 +21,7 @@ enum AppState: String {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let statusLine = NSMenuItem(title: AppState.idle.rawValue, action: nil, keyEquivalent: "")
+    private var permissionItems: [Permission: NSMenuItem] = [:]
 
     var state: AppState = .idle {
         didSet {
@@ -37,7 +38,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusLine.isEnabled = false
         menu.addItem(statusLine)
         menu.addItem(.separator())
+        for p in Permission.allCases {
+            let item = NSMenuItem(title: p.title, action: #selector(requestPermission(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = p
+            permissionItems[p] = item
+            menu.addItem(item)
+        }
+        menu.addItem(.separator())
         menu.addItem(withTitle: "Beenden", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.delegate = self
         statusItem.menu = menu
+        refreshPermissions()
     }
+
+    func refreshPermissions() {
+        for (p, item) in permissionItems {
+            item.state = p.granted ? .on : .off
+            item.title = p.granted ? p.title : "\(p.title) – fehlt, klicken zum Erteilen"
+        }
+        if !Permission.allGranted { state = .blocked } else if state == .blocked { state = .idle }
+    }
+
+    @objc private func requestPermission(_ sender: NSMenuItem) {
+        (sender.representedObject as? Permission)?.request()
+    }
+}
+
+extension AppDelegate: NSMenuDelegate {
+    func menuWillOpen(_ menu: NSMenu) { refreshPermissions() }
 }
