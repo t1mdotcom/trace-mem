@@ -56,9 +56,9 @@ T3|x|Permissions module: check/request mic, speech, accessibility; menu shows st
 T4|x|Hotkey: `CGEvent` tap keyDown/keyUp/flagsChanged, match against settings binding, hold + toggle mode → start/stop callbacks, re-enable on timeout|I.hotkey,V8,V13
 T5|x|Audio capture: `CaptureInputSequenceProvider.providerWithSession(from: mic)` (Speech fw, macOS 27 SDK) wrapped in own `AsyncStream<AnalyzerInput>` for controlled end-of-input; level via `AVCaptureAudioChannel.averagePowerLevel`|V1
 T6|x|STT: `SpeechAnalyzer` + `SpeechTranscriber`, locale de/en, asset install w/ progress, partial + final results stream|V6,V1
-T7|~|Indicator panel: floating `NSPanel`, level + partial text, show on record, hide after inject|I.indicator
-T8|~|Inject: pasteboard save → set → ⌘V via `CGEvent` → restore|I.inject,V3
-T9|.|End-to-end wire: hold → record → release → finalize → inject raw. Manual test in TextEdit + Claude Code terminal|V5,V11
+T7|x|Indicator panel: floating `NSPanel`, level + partial text, show on record, hide after inject|I.indicator
+T8|x|Inject: pasteboard save → set → ⌘V via `CGEvent` → restore|I.inject,V3
+T9|~|End-to-end wire: hold → record → release → finalize → inject raw. Manual test in TextEdit + Claude Code terminal|V5,V11
 T10|x|Settings: load/save json, defaults, provider/model/hotkey/locale|I.settings
 T11|.|Cleanup: `Process` runner for claude/codex, prompt, timeout, sanity check, fallback raw|I.cleanup,V2,V7
 T12|.|Menu: toggle cleanup, provider picker, status per phase|I.menubar
