@@ -62,7 +62,7 @@ T9|~|End-to-end wire: hold → record → release → finalize → inject raw. M
 T10|x|Settings: load/save json, defaults, provider/model/hotkey/locale|I.settings
 T11|.|Cleanup: `Process` runner for claude/codex, prompt, timeout, sanity check, fallback raw|I.cleanup,V2,V7
 T12|.|Menu: toggle cleanup, provider picker, status per phase|I.menubar
-T12a|.|Hotkey capture panel: "Taste drücken", record next key/modifier, validate, save to settings, live re-bind|I.hotkey capture,V12
+T12a|x|Hotkey capture panel: "Taste drücken", record next key/modifier, validate, save to settings, live re-bind|I.hotkey capture,V12
 T13|.|Self-check: `swift test` → cleanup fallback logic (timeout, empty, oversize), pasteboard restore, hotkey matcher (modifier-only, key+mods, toggle state machine)|V2,V3,V7,V13
 T14|.|P2: system audio tap via `CATapDescription` → PCM stream, `NSAudioCaptureUsageDescription`|I.system audio,V1
 T15|.|P2: meeting mode: menu start/stop, 2× `SpeechTranscriber` (mic, system), merge by timestamp, labels Ich/Andere|V10,V11

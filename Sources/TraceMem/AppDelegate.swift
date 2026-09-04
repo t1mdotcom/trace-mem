@@ -32,6 +32,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let dictation = Dictation()
     private let indicator = IndicatorPanel()
     private var startTask: Task<Void, Never>?
+    private let capturePanel = HotkeyCapturePanel()
+    private let hotkeyItem = NSMenuItem(title: "", action: #selector(changeHotkey), keyEquivalent: "")
+    private let modeItem = NSMenuItem(title: "", action: #selector(toggleMode), keyEquivalent: "")
     private var lastError: String?
 
     var state: AppState = .idle {
@@ -56,6 +59,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             permissionItems[p] = item
             menu.addItem(item)
         }
+        menu.addItem(.separator())
+        hotkeyItem.target = self
+        modeItem.target = self
+        menu.addItem(hotkeyItem)
+        menu.addItem(modeItem)
+        refreshHotkeyItems()
         menu.addItem(.separator())
         menu.addItem(withTitle: "Beenden", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.delegate = self
@@ -111,6 +120,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Self.log.error("\(message)")
         lastError = message
         state = .blocked
+    }
+
+    // MARK: hotkey settings (T12a)
+
+    private func refreshHotkeyItems() {
+        hotkeyItem.title = "Hotkey ändern… (aktuell: \(settings.hotkey.displayName))"
+        modeItem.title = settings.hotkey.mode == .hold ? "Modus: Halten zum Sprechen" : "Modus: Drücken für Start/Stopp"
+    }
+
+    @objc private func changeHotkey() {
+        hotkey.stop() // don't trigger recordings while capturing
+        capturePanel.show { [unowned self] binding in
+            if var b = binding {
+                b.mode = settings.hotkey.mode
+                settings.hotkey = b
+                refreshHotkeyItems()
+            }
+            hotkey.start()
+        }
+    }
+
+    @objc private func toggleMode() {
+        settings.hotkey.mode = settings.hotkey.mode == .hold ? .toggle : .hold
+        refreshHotkeyItems()
     }
 
     // MARK: permissions
