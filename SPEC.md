@@ -51,7 +51,7 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 
 id|status|task|cites
 T1|x|SwiftPM pkg `trace-mem`, executable target, `scripts/bundle.sh` w/ Info.plist + ad-hoc sign, `scripts/run.sh`|§C,I.cmd
-T2|.|Menubar app skeleton: `NSStatusItem`, menu w/ status + quit, `LSUIElement`|I.menubar
+T2|x|Menubar app skeleton: `NSStatusItem`, menu w/ status + quit, `LSUIElement`|I.menubar
 T3|.|Permissions module: check/request mic, speech, accessibility; menu shows state + settings links|V4
 T4|.|Hotkey: `CGEvent` tap keyDown/keyUp/flagsChanged, match against settings binding, hold + toggle mode → start/stop callbacks, re-enable on timeout|I.hotkey,V8,V13
 T5|.|Audio capture: `AVAudioEngine` mic → `AsyncStream<AVAudioPCMBuffer>`, level meter|V1

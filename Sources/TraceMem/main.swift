@@ -1,6 +1,7 @@
 import AppKit
 
-// ponytail: scaffold only — status item + delegate land in T2.
 let app = NSApplication.shared
+let delegate = AppDelegate()
+app.delegate = delegate
 app.setActivationPolicy(.accessory)
 app.run()
