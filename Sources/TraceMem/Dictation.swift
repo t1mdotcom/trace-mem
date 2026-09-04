@@ -68,7 +68,7 @@ final class Dictation {
                         if Task.isCancelled { break }
                         cont.yield(input)
                     }
-                } catch { Self.log.error("input pump: \(error)") }
+                } catch { Diag.error("input pump: \(error)") }
                 cont.finish()
             }
 

@@ -1,11 +1,13 @@
 import AppKit
 import os
+import notify
 
 enum AppState: String {
     case idle = "Bereit"
     case recording = "Aufnahme…"
     case transcribing = "Transkribiere…"
     case cleanup = "Cleanup…"
+    case meeting = "Meeting läuft…"
     case blocked = "Blockiert"
 
     var symbol: String {
@@ -13,6 +15,7 @@ enum AppState: String {
         case .idle: "waveform"
         case .recording: "waveform.circle.fill"
         case .transcribing, .cleanup: "ellipsis.circle"
+        case .meeting: "record.circle.fill"
         case .blocked: "exclamationmark.triangle"
         }
     }
@@ -37,6 +40,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let modeItem = NSMenuItem(title: "", action: #selector(toggleMode), keyEquivalent: "")
     private let providerMenu = NSMenu()
     private let micMenu = NSMenu()
+    private let localeMenu = NSMenu()
+    private let meeting = MeetingSession()
+    private let meetingItem = NSMenuItem(title: "Meeting aufnehmen", action: #selector(toggleMeeting), keyEquivalent: "")
     private var lastError: String?
 
     var state: AppState = .idle {
@@ -67,6 +73,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(hotkeyItem)
         menu.addItem(modeItem)
         refreshHotkeyItems()
+        meetingItem.target = self
+        menu.addItem(meetingItem)
+        menu.addItem(.separator())
+        let localeItem = NSMenuItem(title: "Sprache", action: nil, keyEquivalent: "")
+        for (title, id) in [("System (\(Locale.current.identifier))", nil), ("Deutsch", "de-DE"), ("English", "en-US")] as [(String, String?)] {
+            let it = NSMenuItem(title: title, action: #selector(pickLocale(_:)), keyEquivalent: "")
+            it.target = self
+            it.representedObject = id
+            localeMenu.addItem(it)
+        }
+        localeItem.submenu = localeMenu
+        menu.addItem(localeItem)
+        refreshLocaleItems()
         let micItem = NSMenuItem(title: "Mikrofon", action: nil, keyEquivalent: "")
         micItem.submenu = micMenu
         menu.addItem(micItem)
@@ -90,9 +109,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             lastError = p < 1 ? "Sprachmodell lädt \(Int(p * 100))%" : nil
             state = p < 1 ? .blocked : .idle
         }
+        meeting.onWarning = { [unowned self] msg in lastError = msg; state = state } // refresh status line
         hotkey.onStart = { [unowned self] in startRecording() }
         hotkey.onStop = { [unowned self] in stopRecording() }
         refreshPermissions()
+
+        // Debug/automation hook: `notifyutil -p dev.theinemann.trace-mem.meeting` toggles meeting mode.
+        var token: Int32 = 0
+        notify_register_dispatch("dev.theinemann.trace-mem.meeting", &token, .main) { [unowned self] _ in
+            Diag.log("notify: toggle meeting (state \(state.rawValue), running \(meeting.isRunning))")
+            toggleMeeting()
+        }
+        Diag.log("launched")
 
         Task { [unowned self] in
             do { try await dictation.ensureAssets(locale: await Dictation.resolveLocale(settings.locale)) }
@@ -140,7 +168,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func fail(_ message: String) {
-        Self.log.error("\(message)")
+        Diag.error("\(message)")
         lastError = message
         state = .blocked
     }
@@ -167,6 +195,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleMode() {
         settings.hotkey.mode = settings.hotkey.mode == .hold ? .toggle : .hold
         refreshHotkeyItems()
+    }
+
+    // MARK: meeting mode (T15/T16)
+
+    @objc private func toggleMeeting() {
+        if meeting.isRunning {
+            meetingItem.isEnabled = false
+            Task { [unowned self] in
+                do {
+                    let url = try await meeting.stop(settings: settings)
+                    NSWorkspace.shared.open(url)
+                    lastError = nil
+                    state = .idle
+                } catch { fail("Meeting: \(error.localizedDescription)") }
+                meetingItem.title = "Meeting aufnehmen"
+                meetingItem.isEnabled = true
+            }
+        } else {
+            guard state == .idle else { return } // V11
+            lastError = nil
+            state = .meeting
+            meetingItem.title = "Meeting beenden"
+            Task { [unowned self] in
+                do { try await meeting.start(locale: await Dictation.resolveLocale(settings.locale), inputDeviceUID: settings.inputDeviceUID) }
+                catch {
+                    fail("Meeting: \(error.localizedDescription)")
+                    meetingItem.title = "Meeting aufnehmen"
+                }
+            }
+        }
+    }
+
+    // MARK: locale
+
+    private func refreshLocaleItems() {
+        for it in localeMenu.items { it.state = (it.representedObject as? String) == settings.locale ? .on : .off }
+    }
+
+    @objc private func pickLocale(_ sender: NSMenuItem) {
+        settings.locale = sender.representedObject as? String
+        refreshLocaleItems()
+        Task { [unowned self] in
+            do { try await dictation.ensureAssets(locale: await Dictation.resolveLocale(settings.locale)) }
+            catch { fail("Sprachmodell: \(error.localizedDescription)") }
+        }
     }
 
     // MARK: microphone (V15)
@@ -218,12 +291,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func refreshPermissions() {
         for (p, item) in permissionItems {
-            item.state = p.granted ? .on : .off
-            item.title = p.granted ? p.title : "\(p.title) – fehlt, klicken zum Erteilen"
+            guard let ok = p.granted else { item.state = .off; item.title = p.title; continue }
+            item.state = ok ? .on : .off
+            item.title = ok ? p.title : "\(p.title) – fehlt, klicken zum Erteilen"
         }
         if !Permission.allGranted { lastError = "Berechtigung fehlt"; state = .blocked }
         else if state == .blocked, lastError == "Berechtigung fehlt" { lastError = nil; state = .idle }
-        if Permission.accessibility.granted, !hotkey.isActive { hotkey.start() }
+        if Permission.accessibility.granted == true, !hotkey.isActive { hotkey.start() }
     }
 
     @objc private func requestPermission(_ sender: NSMenuItem) {

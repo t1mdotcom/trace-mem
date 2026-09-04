@@ -29,7 +29,7 @@ final class HotkeyTap {
             eventsOfInterest: mask, callback: hotkeyTapCallback,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            Self.log.error("tapCreate failed – Accessibility missing?")
+            Diag.error("tapCreate failed – Accessibility missing?")
             return false
         }
         self.tap = tap
@@ -47,7 +47,7 @@ final class HotkeyTap {
 
     fileprivate func handle(type: CGEventType, keyCode: UInt16, flags: UInt64, autorepeat: Bool) -> Bool {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            Self.log.warning("tap disabled (\(type.rawValue)) – re-enabling")
+            Diag.error("tap disabled (\(type.rawValue)) – re-enabling")
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             return false
         }

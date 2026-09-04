@@ -6,6 +6,12 @@ import os
 enum Cleanup {
     private static let log = Logger(subsystem: "dev.theinemann.trace-mem", category: "cleanup")
 
+    static let summaryInstructions = """
+    Du fasst ein Meeting-Transkript zusammen. Sprecher "Ich" ist der Nutzer, "Andere" sind Gesprächspartner.
+    Gib auf Deutsch aus: 3-7 Stichpunkte zu Themen und Entscheidungen, danach eine Liste "Offene Punkte / To-dos".
+    Nur Inhalte aus dem Transkript, nichts erfinden. Antworte nur mit Markdown, ohne Einleitung.
+    """
+
     static let instructions = """
     Du korrigierst diktierten Text. Regeln:
     - Entferne Füllwörter (ähm, äh, also, halt, quasi, sozusagen) und Wortwiederholungen durch Versprecher.
@@ -39,17 +45,17 @@ enum Cleanup {
         guard settings.provider != .none, !raw.isEmpty else { return (raw, nil) }
         do {
             let out = try await withTimeout(.milliseconds(settings.cleanupTimeoutMs)) {
-                try await generate(raw, settings: settings)
+                try await generate(instructions: instructions, input: raw, settings: settings)
             }
             switch validate(raw: raw, output: out) {
             case .success(let t): return (t, nil)
             case .failure(let f): return (raw, f)
             }
         } catch let f as Failure {
-            log.warning("cleanup fallback: \(f.description)")
+            Diag.error("cleanup fallback: \(f.description)")
             return (raw, f)
         } catch {
-            log.warning("cleanup fallback: \(error)")
+            Diag.error("cleanup fallback: \(error)")
             return (raw, .process(error.localizedDescription))
         }
     }
@@ -64,7 +70,21 @@ enum Cleanup {
         }
     }
 
-    private static func generate(_ raw: String, settings: Settings) async throws -> String {
+    /// Meeting summary; nil when provider is off or generation fails (reason logged).
+    static func summarize(_ transcript: String, settings: Settings) async -> (text: String?, failure: Failure?) {
+        guard settings.provider != .none, !transcript.isEmpty else { return (nil, nil) }
+        do {
+            // ponytail: Apple on-device context is small (~4k tokens); long meetings fail → no summary. Chunking later if needed.
+            let out = try await withTimeout(.seconds(90)) {
+                try await generate(instructions: summaryInstructions, input: transcript, settings: settings)
+            }
+            let t = out.trimmingCharacters(in: .whitespacesAndNewlines)
+            return t.isEmpty ? (nil, .implausible) : (t, nil)
+        } catch let f as Failure { return (nil, f) }
+        catch { return (nil, .process(error.localizedDescription)) }
+    }
+
+    private static func generate(instructions: String, input raw: String, settings: Settings) async throws -> String {
         switch settings.provider {
         case .none: return raw
         case .apple:

@@ -6,18 +6,23 @@ import AppKit
 enum Permission: CaseIterable {
     case microphone
     case accessibility
+    /// System audio recording (Core Audio tap). Not queryable → shown as link only; silence means denied.
+    case systemAudio
 
     var title: String {
         switch self {
         case .microphone: "Mikrofon"
         case .accessibility: "Bedienungshilfen (Hotkey + Einfügen)"
+        case .systemAudio: "Systemaudio (Meetings) – in Einstellungen prüfen"
         }
     }
 
-    var granted: Bool {
+    /// nil = cannot be determined by API.
+    var granted: Bool? {
         switch self {
         case .microphone: AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
         case .accessibility: AXIsProcessTrusted()
+        case .systemAudio: nil
         }
     }
 
@@ -25,6 +30,7 @@ enum Permission: CaseIterable {
         let pane = switch self {
         case .microphone: "Privacy_Microphone"
         case .accessibility: "Privacy_Accessibility"
+        case .systemAudio: "Privacy_AudioCapture"
         }
         return URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)")!
     }
@@ -43,8 +49,11 @@ enum Permission: CaseIterable {
             if !AXIsProcessTrustedWithOptions(opts) {
                 NSWorkspace.shared.open(settingsURL)
             }
+        case .systemAudio:
+            NSWorkspace.shared.open(settingsURL)
         }
     }
 
-    static var allGranted: Bool { allCases.allSatisfy(\.granted) }
+    /// Only permissions that can be queried count; systemAudio is checked at meeting start via silence detection.
+    static var allGranted: Bool { allCases.allSatisfy { $0.granted ?? true } }
 }
