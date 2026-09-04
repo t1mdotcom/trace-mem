@@ -22,6 +22,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let statusLine = NSMenuItem(title: AppState.idle.rawValue, action: nil, keyEquivalent: "")
     private var permissionItems: [Permission: NSMenuItem] = [:]
+    var settings = Settings.load() {
+        didSet { try? settings.save() }
+    }
 
     var state: AppState = .idle {
         didSet {

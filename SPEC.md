@@ -53,13 +53,13 @@ id|status|task|cites
 T1|x|SwiftPM pkg `trace-mem`, executable target, `scripts/bundle.sh` w/ Info.plist + ad-hoc sign, `scripts/run.sh`|§C,I.cmd
 T2|x|Menubar app skeleton: `NSStatusItem`, menu w/ status + quit, `LSUIElement`|I.menubar
 T3|x|Permissions module: check/request mic, speech, accessibility; menu shows state + settings links|V4
-T4|.|Hotkey: `CGEvent` tap keyDown/keyUp/flagsChanged, match against settings binding, hold + toggle mode → start/stop callbacks, re-enable on timeout|I.hotkey,V8,V13
+T4|~|Hotkey: `CGEvent` tap keyDown/keyUp/flagsChanged, match against settings binding, hold + toggle mode → start/stop callbacks, re-enable on timeout|I.hotkey,V8,V13
 T5|.|Audio capture: `AVAudioEngine` mic → `AsyncStream<AVAudioPCMBuffer>`, level meter|V1
 T6|.|STT: `SpeechAnalyzer` + `SpeechTranscriber`, locale de/en, asset install w/ progress, partial + final results stream|V6,V1
 T7|.|Indicator panel: floating `NSPanel`, level + partial text, show on record, hide after inject|I.indicator
 T8|.|Inject: pasteboard save → set → ⌘V via `CGEvent` → restore|I.inject,V3
 T9|.|End-to-end wire: hold → record → release → finalize → inject raw. Manual test in TextEdit + Claude Code terminal|V5,V11
-T10|~|Settings: load/save json, defaults, provider/model/hotkey/locale|I.settings
+T10|x|Settings: load/save json, defaults, provider/model/hotkey/locale|I.settings
 T11|.|Cleanup: `Process` runner for claude/codex, prompt, timeout, sanity check, fallback raw|I.cleanup,V2,V7
 T12|.|Menu: toggle cleanup, provider picker, status per phase|I.menubar
 T12a|.|Hotkey capture panel: "Taste drücken", record next key/modifier, validate, save to settings, live re-bind|I.hotkey capture,V12

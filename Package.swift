@@ -9,6 +9,7 @@ let package = Package(
             name: "TraceMem",
             path: "Sources/TraceMem",
             swiftSettings: [.swiftLanguageMode(.v6)]
-        )
+        ),
+        .testTarget(name: "TraceMemTests", dependencies: ["TraceMem"]),
     ]
 )
