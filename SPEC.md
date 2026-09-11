@@ -32,7 +32,7 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 - system audio (P2): `CATapDescription` process tap (all processes, stereo mix) → `AVAudioEngine`-free `AudioUnit` HAL input → PCM buffer stream.
 - cmd: `scripts/bundle.sh` → `build/trace-mem.app` (uses `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` if `xcode-select -p` is CLT); `scripts/run.sh` → bundle + open.
 - release: `scripts/release.sh <semver>` → `swift test` · release bundle w/ `VERSION` in plist · `build/trace-mem-<v>.zip` (ditto) · tag `v<v>` · `gh release create` w/ notes · bump `packaging/trace-mem.rb` (version, sha256) · push cask to tap repo `t1mdotcom/homebrew-tap` (`Casks/trace-mem.rb`).
-- install: `brew install --cask t1mdotcom/tap/trace-mem`. Not notarized → caveats: right-click open | `xattr -dr com.apple.quarantine`. Cask `depends_on macos: :golden_gate` (= macOS 27, symbol form = minimum; string form `">= :x"` deprecated).
+- install: `brew install --cask t1mdotcom/tap/trace-mem`. Not notarized → caveats: Settings → Privacy & Security → "Open Anyway" | `xattr -dr com.apple.quarantine` | `brew install --no-quarantine`. ⊥ right-click open (dead since macOS 15). Cask `depends_on macos: :golden_gate` (= macOS 27, symbol form = minimum; string form `">= :x"` deprecated).
 - Info.plist keys ! `NSMicrophoneUsageDescription`, `NSSpeechRecognitionUsageDescription`, `LSUIElement`, `NSAudioCaptureUsageDescription` (P2).
 
 ## §V Invariants

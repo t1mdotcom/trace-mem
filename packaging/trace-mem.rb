@@ -17,10 +17,11 @@ cask "trace-mem" do
   ]
 
   caveats <<~EOS
-    trace-mem ist selbstsigniert und nicht notarisiert. Erster Start:
-      Rechtsklick auf /Applications/trace-mem.app → Öffnen
-    oder Quarantäne entfernen:
+    trace-mem ist selbstsigniert und nicht notarisiert. Gatekeeper blockt den ersten Start.
+    Freigeben per Terminal:
       xattr -dr com.apple.quarantine /Applications/trace-mem.app
+    oder Systemeinstellungen → Datenschutz & Sicherheit → „Trotzdem öffnen“.
+    Alternativ ohne Quarantäne installieren: brew install --cask --no-quarantine trace-mem
 
     Danach im Menubar-Menü Mikrofon und Bedienungshilfen erlauben.
   EOS

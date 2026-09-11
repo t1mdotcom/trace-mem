@@ -54,7 +54,7 @@ Hinweise:
 brew install --cask t1mdotcom/tap/trace-mem
 ```
 
-Die App ist selbstsigniert und nicht notarisiert. Beim ersten Start Rechtsklick → Öffnen, oder:
+Die App ist selbstsigniert und nicht notarisiert, Gatekeeper blockt den ersten Start. Freigeben über Systemeinstellungen → Datenschutz & Sicherheit → „Trotzdem öffnen“, oder:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/trace-mem.app
