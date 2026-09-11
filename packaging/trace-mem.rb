@@ -7,8 +7,7 @@ cask "trace-mem" do
   desc "On-device push-to-talk dictation for macOS"
   homepage "https://github.com/t1mdotcom/trace-mem"
 
-  # LSMinimumSystemVersion in the bundle enforces macOS 27; Homebrew has no symbol for 27 yet.
-  depends_on macos: ">= :tahoe"
+  depends_on macos: :golden_gate
   depends_on arch: :arm64
 
   app "trace-mem.app"
