@@ -13,7 +13,7 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 - Menubar app (`NSStatusItem`), `LSUIElement=true`, ⊥ dock icon, ⊥ main window in v1.
 - Langs: de + en. Locale auto | setting.
 - Out of scope: diarization, custom vocab UI, App Store, Windows/Linux. Notarization ? later (needs Developer ID; swap signing identity only).
-- Distribution: GitHub Releases + Homebrew cask. Release build local (GH runners lack Xcode 27). CI ? when runner image ships Xcode 27.
+- Distribution: GitHub Releases + Homebrew cask. Repo public since 2026-09-11 → ⊥ secrets in tree/history. Release build local (GH runners lack Xcode 27). CI ? when runner image ships Xcode 27.
 - Deps: Apple frameworks only (AppKit, Speech, AVFoundation, CoreAudio, FoundationModels). ⊥ SPM deps unless §T says.
 
 ## §I Interfaces
@@ -32,7 +32,7 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 - system audio (P2): `CATapDescription` process tap (all processes, stereo mix) → `AVAudioEngine`-free `AudioUnit` HAL input → PCM buffer stream.
 - cmd: `scripts/bundle.sh` → `build/trace-mem.app` (uses `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` if `xcode-select -p` is CLT); `scripts/run.sh` → bundle + open.
 - release: `scripts/release.sh <semver>` → `swift test` · release bundle w/ `VERSION` in plist · `build/trace-mem-<v>.zip` (ditto) · tag `v<v>` · `gh release create` w/ notes · bump `packaging/trace-mem.rb` (version, sha256) · push cask to tap repo `t1mdotcom/homebrew-tap` (`Casks/trace-mem.rb`).
-- install: `brew install --cask t1mdotcom/tap/trace-mem`. Not notarized → caveats: right-click open | `xattr -dr com.apple.quarantine`.
+- install: `brew install --cask t1mdotcom/tap/trace-mem`. Not notarized → caveats: right-click open | `xattr -dr com.apple.quarantine`. Cask `depends_on macos: :golden_gate` (= macOS 27, symbol form = minimum; string form `">= :x"` deprecated).
 - Info.plist keys ! `NSMicrophoneUsageDescription`, `NSSpeechRecognitionUsageDescription`, `LSUIElement`, `NSAudioCaptureUsageDescription` (P2).
 
 ## §V Invariants
@@ -74,7 +74,7 @@ T13|x|Self-check: `swift test` → cleanup fallback logic (timeout, empty, overs
 T14|x|P2: system audio tap via `CATapDescription` → PCM stream, `NSAudioCaptureUsageDescription`|I.system audio,V1
 T15|x|P2: meeting mode: menu start/stop, 2× `SpeechTranscriber` (mic, system), merge by timestamp, labels Ich/Andere|V10,V11
 T17|x|Release: `scripts/release.sh`, `VERSION` env in bundle.sh, `packaging/trace-mem.rb` cask, README install section|I.release,I.install,V14
-T18|.|Tap repo `t1mdotcom/homebrew-tap` public w/ `Casks/trace-mem.rb`; first release v0.1.0; verify `brew install --cask`|I.install
+T18|x|Tap repo `t1mdotcom/homebrew-tap` public w/ `Casks/trace-mem.rb`; first release v0.1.0; verify `brew install --cask`|I.install
 T16|x|P2: incremental Markdown writer to `~/Documents/trace-mem/`, frontmatter, ? summary via cleanup provider|I.meeting out,V9
 
 ## §B Bugs
