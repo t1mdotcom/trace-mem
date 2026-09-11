@@ -7,8 +7,7 @@ cask "trace-mem" do
   desc "On-device push-to-talk dictation for macOS"
   homepage "https://github.com/t1mdotcom/trace-mem"
 
-  # LSMinimumSystemVersion in the bundle enforces macOS 27; Homebrew has no symbol for 27 yet.
-  depends_on macos: ">= :tahoe"
+  depends_on macos: :golden_gate
   depends_on arch: :arm64
 
   app "trace-mem.app"
@@ -18,10 +17,11 @@ cask "trace-mem" do
   ]
 
   caveats <<~EOS
-    trace-mem ist selbstsigniert und nicht notarisiert. Erster Start:
-      Rechtsklick auf /Applications/trace-mem.app → Öffnen
-    oder Quarantäne entfernen:
+    trace-mem ist selbstsigniert und nicht notarisiert. Gatekeeper blockt den ersten Start.
+    Freigeben per Terminal:
       xattr -dr com.apple.quarantine /Applications/trace-mem.app
+    oder Systemeinstellungen → Datenschutz & Sicherheit → „Trotzdem öffnen“.
+    Alternativ ohne Quarantäne installieren: brew install --cask --no-quarantine trace-mem
 
     Danach im Menubar-Menü Mikrofon und Bedienungshilfen erlauben.
   EOS
