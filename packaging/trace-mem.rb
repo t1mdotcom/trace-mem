@@ -1,6 +1,6 @@
 cask "trace-mem" do
-  version "0.0.0"
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+  version "0.1.0"
+  sha256 "686dee8aead98d0adb19f2c3b83b28b034315cb08b3b03f24e4dd400e3c412a4"
 
   url "https://github.com/t1mdotcom/trace-mem/releases/download/v#{version}/trace-mem-#{version}.zip"
   name "trace-mem"
