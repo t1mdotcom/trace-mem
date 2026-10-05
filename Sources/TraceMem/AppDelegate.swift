@@ -112,6 +112,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         summaryItem.submenu = summaryMenu
         menu.addItem(summaryItem)
+        let vocabItem = NSMenuItem(title: "Wörterbuch bearbeiten…", action: #selector(editVocabulary), keyEquivalent: "")
+        vocabItem.target = self
+        menu.addItem(vocabItem)
         refreshProviderItems()
         menu.addItem(.separator())
         menu.addItem(withTitle: "Beenden", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -163,11 +166,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             startTask = nil
             do {
                 let raw = try await dictation.stop()
-                var text = raw
-                if !raw.isEmpty, settings.provider != .none {
+                let vocabulary = loadVocabulary()
+                var text = vocabulary.apply(to: raw) // V17: before cleanup, so the V2 fallback is corrected too
+                if !text.isEmpty, settings.provider != .none {
                     state = .cleanup
                     indicator.update(text: "Cleanup…")
-                    let r = await Cleanup.run(raw, settings: settings)
+                    let r = await Cleanup.run(text, terms: vocabulary.terms, settings: settings)
                     text = r.text
                     if let f = r.failure { lastError = "Cleanup übersprungen: \(f.description)" }
                 }
@@ -185,6 +189,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Diag.error("\(message)")
         lastError = message
         state = .blocked
+    }
+
+    // MARK: vocabulary (T19)
+
+    /// V18: unreadable file → reason in the status line, dictation continues uncorrected.
+    private func loadVocabulary() -> Vocabulary {
+        do { return try Vocabulary.load() }
+        catch {
+            Diag.error("vocabulary: \(error)")
+            lastError = "Wörterbuch: \(error.localizedDescription)"
+            return Vocabulary()
+        }
+    }
+
+    @objc private func editVocabulary() {
+        let url = Vocabulary.url
+        if !FileManager.default.fileExists(atPath: url.path) {
+            do { try Vocabulary.template.write(to: url, atomically: true, encoding: .utf8) }
+            catch {
+                Diag.error("vocabulary template: \(error)")
+                lastError = "Wörterbuch: \(error.localizedDescription)"
+                let current = state; state = current // didSet refreshes the status line; ⊥ blocked (V18)
+                return
+            }
+        }
+        NSWorkspace.shared.open(url)
     }
 
     // MARK: hotkey settings (T12a)

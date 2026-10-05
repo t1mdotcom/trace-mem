@@ -8,6 +8,7 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 
 - Target: macOS ≥ 27, arm64 (`CaptureInputSequenceProvider` needs 27). Dev box: macOS 27, Xcode 27.0 beta @ `/Applications/Xcode-beta.app`, Swift 6.4. `xcode-select` currently → CLT ∴ scripts set `DEVELOPER_DIR` explicitly | user runs `sudo xcode-select -s /Applications/Xcode-beta.app`.
 - STT ! on-device: Apple Speech `SpeechAnalyzer` + `SpeechTranscriber`. ⊥ Whisper, ⊥ cloud STT. Reason: Claude/Codex subs have no STT API.
+- STT bias: `SpeechTranscriber` ⊥ `AnalysisContext.contextualStrings` (only `DictationTranscriber`; measured 2026-10-05 on `say -v Anna` samples: worse base accuracy, ⊥ punctuation, vocab hit 1/4) ∴ custom vocab = post-STT text correction, keep `SpeechTranscriber`.
 - LLM cleanup ? optional. Providers: `apple` (FoundationModels `LanguageModelSession`, on-device, **default**) | `claude` (subprocess `claude -p --model haiku`) | `codex` (subprocess `codex exec`) | `none`. CLI providers use existing sub login. ⊥ API keys in app.
 - Build: SwiftPM package (`Package.swift`, openable in Xcode directly) + `scripts/bundle.sh` → `.app` w/ Info.plist, ad-hoc codesign. ⊥ `.xcodeproj` (SwiftPM suffices; Xcode = editor/debugger).
 - Menubar app (`NSStatusItem`), `LSUIElement=true`, ⊥ dock icon, ⊥ main window in v1.
@@ -25,9 +26,12 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 - cleanup cmd (claude): `claude -p --model haiku --output-format text <prompt>` w/ raw on stdin → stdout text
 - cleanup cmd (codex): `codex exec --quiet <prompt+raw>` → stdout text
 - cleanup prompt: remove fillers (ähm, also, halt) · fix punctuation · apply spoken cmds ("neuer Absatz"→`\n\n`, "Komma"→`,`, "Punkt"→`.`) · keep language · output text only.
+- cleanup prompt (vocab): terms non-empty → append rule "Fachbegriffe exakt so schreiben; ähnlich klingende Wörter/Wortgruppen durch Begriff ersetzen" + term list.
+- vocabulary: `~/Library/Application Support/trace-mem/vocabulary.txt`, UTF-8, 1 term/line, `#` comment, optional `Term: variant1, variant2` (known misrecognitions). Read per dictation (edits live, ⊥ restart). Missing file → empty. Menu "Wörterbuch bearbeiten…" → create from template if missing → open in default editor.
+- vocab match: key = lowercase, diacritics folded, letters+digits only. Window = 1…4 words joined by whitespace|`-` only. Match: window key = term key | variant key (exact), or fuzzy Levenshtein vs term key ≤ 2 (term key ≥ 9 chars) | ≤ 1 (7–8) | 0 (< 7). Window key = term key + suffix (inflection) → ⊥ fuzzy. Key < 3 chars → ⊥ match (prompt hint only). Overlap → lowest distance, then longest window wins. Replacement = canonical term spelling.
 - settings: `~/Library/Application Support/trace-mem/settings.json` → `{provider: "apple"|"claude"|"codex"|"none" (default apple), model?: string, hotkey: {keyCode: int, modifiers: int, isModifierKey: bool, mode: "hold"|"toggle"}, locale?: string, cleanupTimeoutMs: 3000, inputDeviceUID?: string}`
 - indicator: floating `NSPanel`, non-activating, bottom-center, shows waveform level + partial transcript.
-- menubar menu: status (idle/recording/transcribing/cleanup) · Mikrofon submenu (Automatisch + device list, rebuilt on open) · Hotkey ändern… (shows current binding) · hold/toggle mode · toggle cleanup · provider picker · permissions status w/ "open System Settings" links · quit.
+- menubar menu: status (idle/recording/transcribing/cleanup) · Mikrofon submenu (Automatisch + device list, rebuilt on open) · Hotkey ändern… (shows current binding) · hold/toggle mode · toggle cleanup · provider picker · Wörterbuch bearbeiten… · permissions status w/ "open System Settings" links · quit.
 - meeting out (P2): `~/Documents/trace-mem/<YYYY-MM-DD_HH-mm>.md` → frontmatter `{start, end, duration}` + lines `[HH:MM:SS] Ich|Andere: text` + `## Zusammenfassung` ? if cleanup provider set.
 - system audio (P2): `CATapDescription` process tap (all processes, stereo mix) → `AVAudioEngine`-free `AudioUnit` HAL input → PCM buffer stream.
 - cmd: `scripts/bundle.sh` → `build/trace-mem.app` (uses `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` if `xcode-select -p` is CLT); `scripts/run.sh` → bundle + open.
@@ -53,6 +57,8 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 - V16: ∀ audio buffer copy → sample data preserved (unit test w/ synthetic AudioBufferList, non-zero peak).
 - V14: release ⊥ from dirty tree | non-main branch. Tag, zip, cask sha ! consistent for same version.
 - V13: hotkey event consumed (⊥ passed to focused app) only when binding matched. All other events pass through untouched.
+- V17: dictation raw → vocab correction before cleanup ∴ V2 fallback & provider `none` still corrected. ⊥ matching window → text unchanged.
+- V18: vocabulary file unreadable (≠ missing) → status line reason, dictation continues uncorrected. ⊥ blocked, ⊥ silent.
 
 ## §T Tasks
 
@@ -76,6 +82,7 @@ T15|x|P2: meeting mode: menu start/stop, 2× `SpeechTranscriber` (mic, system), 
 T17|x|Release: `scripts/release.sh`, `VERSION` env in bundle.sh, `packaging/trace-mem.rb` cask, README install section|I.release,I.install,V14
 T18|x|Tap repo `t1mdotcom/homebrew-tap` public w/ `Casks/trace-mem.rb`; first release v0.1.0; verify `brew install --cask`|I.install
 T16|x|P2: incremental Markdown writer to `~/Documents/trace-mem/`, frontmatter, ? summary via cleanup provider|I.meeting out,V9
+T19|x|Vocabulary: parse `vocabulary.txt`, matcher, apply to raw before cleanup, terms → cleanup prompt, menu "Wörterbuch bearbeiten…", tests|I.vocabulary,I.vocab match,I.cleanup prompt (vocab),V2,V17,V18
 
 ## §B Bugs
 
