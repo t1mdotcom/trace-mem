@@ -34,7 +34,7 @@ macOS-native voice input à la Wispr Flow. Hold hotkey → speak → text lands 
 - menubar menu: status (idle/recording/transcribing/cleanup) · Mikrofon submenu (Automatisch + device list, rebuilt on open) · Hotkey ändern… (shows current binding) · hold/toggle mode · toggle cleanup · provider picker · Wörterbuch bearbeiten… · permissions status w/ "open System Settings" links · quit.
 - meeting out (P2): `~/Documents/trace-mem/<YYYY-MM-DD_HH-mm>.md` → frontmatter `{start, end, duration}` + lines `[HH:MM:SS] Ich|Andere: text` + `## Zusammenfassung` ? if cleanup provider set.
 - system audio (P2): `CATapDescription` process tap (all processes, stereo mix) → `AVAudioEngine`-free `AudioUnit` HAL input → PCM buffer stream.
-- cmd: `scripts/bundle.sh` → `build/trace-mem.app` (uses `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` if `xcode-select -p` is CLT); `scripts/run.sh` → bundle + open.
+- cmd: `scripts/bundle.sh` → `build/trace-mem.app` (uses `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` if `xcode-select -p` is CLT); stdout also carries `swift build` log, last line = app path ∴ callers `| tail -1`; `scripts/run.sh` → bundle + open.
 - release: `scripts/release.sh <semver>` → `swift test` · release bundle w/ `VERSION` in plist · `build/trace-mem-<v>.zip` (ditto) · tag `v<v>` · `gh release create` w/ notes · bump `packaging/trace-mem.rb` (version, sha256) · push cask to tap repo `t1mdotcom/homebrew-tap` (`Casks/trace-mem.rb`).
 - install: `brew install --cask t1mdotcom/tap/trace-mem`. Not notarized → caveats: Settings → Privacy & Security → "Open Anyway" | `xattr -dr com.apple.quarantine` | `brew install --no-quarantine`. ⊥ right-click open (dead since macOS 15). Cask `depends_on macos: :golden_gate` (= macOS 27, symbol form = minimum; string form `">= :x"` deprecated).
 - Info.plist keys ! `NSMicrophoneUsageDescription`, `NSSpeechRecognitionUsageDescription`, `LSUIElement`, `NSAudioCaptureUsageDescription` (P2).
@@ -87,5 +87,6 @@ T19|x|Vocabulary: parse `vocabulary.txt`, matcher, apply to raw before cleanup, 
 ## §B Bugs
 
 id|date|cause|fix
+B3|2026-10-05|`run.sh` captured full `bundle.sh` stdout (incl. `swift build` log) as app path → `open` fails "does not exist"|I.cmd
 B2|2026-09-04|`AVAudioPCMBuffer` `mDataByteSize` = 0 until `frameLength` set → memcpy of 0 bytes → tap delivered silence, misdiagnosed as TCC denial|V16
 B1|2026-09-04|`AVCaptureDevice.default(for: .audio)` picks AirPods mic → BT switches A2DP→HFP, playback quality drops|V15
