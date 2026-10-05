@@ -12,14 +12,23 @@ enum Cleanup {
     Nur Inhalte aus dem Transkript, nichts erfinden. Antworte nur mit Markdown, ohne Einleitung.
     """
 
-    static let instructions = """
+    private static let rules = """
     Du korrigierst diktierten Text. Regeln:
     - Entferne Füllwörter (ähm, äh, also, halt, quasi, sozusagen) und Wortwiederholungen durch Versprecher.
     - Setze korrekte Interpunktion und Groß-/Kleinschreibung.
     - Gesprochene Befehle umsetzen: "neuer Absatz" → Absatzumbruch, "neue Zeile" → Zeilenumbruch, "Komma" → ",", "Punkt" → ".", "Fragezeichen" → "?".
     - Sprache beibehalten (Deutsch bleibt Deutsch, Englisch bleibt Englisch). Inhalt nicht verändern, nichts hinzufügen, nichts zusammenfassen.
-    - Antworte ausschließlich mit dem korrigierten Text, ohne Anführungszeichen, ohne Erklärung.
     """
+
+    /// Cleanup prompt; `terms` from the user vocabulary (I.cleanup prompt (vocab)).
+    static func instructions(terms: [String]) -> String {
+        var lines = [rules]
+        if !terms.isEmpty {
+            lines.append("- Fachbegriffe und Namen des Nutzers, exakt so schreiben: \(terms.joined(separator: ", ")). Klingt ein Wort oder eine Wortgruppe im Text ähnlich wie einer dieser Begriffe (falsch erkannt oder getrennt geschrieben), ersetze sie durch den Begriff.")
+        }
+        lines.append("- Antworte ausschließlich mit dem korrigierten Text, ohne Anführungszeichen, ohne Erklärung.")
+        return lines.joined(separator: "\n")
+    }
 
     enum Failure: Error, Equatable, CustomStringConvertible {
         case timeout, unavailable(String), process(String), implausible
@@ -41,13 +50,13 @@ enum Cleanup {
     }
 
     /// Never throws: returns cleaned text or `raw`, plus the failure reason if it fell back.
-    static func run(_ raw: String, settings: Settings) async -> (text: String, failure: Failure?) {
+    static func run(_ raw: String, terms: [String], settings: Settings) async -> (text: String, failure: Failure?) {
         guard settings.provider != .none, !raw.isEmpty else { return (raw, nil) }
         do {
             // CLI providers need process startup + network; 3s (apple default) would always fall back.
             let ms = settings.provider == .apple ? settings.cleanupTimeoutMs : max(settings.cleanupTimeoutMs, 15000)
             let out = try await withTimeout(.milliseconds(ms)) {
-                try await generate(instructions: instructions, input: raw, settings: settings)
+                try await generate(instructions: instructions(terms: terms), input: raw, settings: settings)
             }
             switch validate(raw: raw, output: out) {
             case .success(let t): return (t, nil)

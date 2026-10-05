@@ -11,6 +11,7 @@ Zweiter Modus: Meeting-Transkription. Mikrofon und System-Audio werden parallel 
 3. Ein kleines Panel unten in der Bildschirmmitte zeigt Pegel und Zwischentext.
 4. Nach dem Loslassen wird der erkannte Text über die Zwischenablage und ein synthetisches ⌘V eingefügt. Der vorherige Inhalt der Zwischenablage wird danach wiederhergestellt.
 5. Optionaler Text-Cleanup (Füllwörter, Interpunktion, gesprochene Befehle wie "neuer Absatz"). Standard ist Apples on-device Modell über das `FoundationModels`-Framework, alternativ `claude -p` oder `codex exec` als Subprozess mit dem bestehenden Abo-Login der CLI. Schlägt der Schritt fehl oder dauert er länger als das Timeout, wird der Rohtext eingefügt und der Grund steht in der Statuszeile.
+6. Eigenes Wörterbuch für Projektbegriffe (z. B. "Clintview"), siehe [Wörterbuch](#wörterbuch).
 
 ## Meetings transkribieren
 
@@ -106,6 +107,7 @@ Alles läuft über das Menubar-Icon (Wellenform):
 - **Modus**: Halten zum Sprechen oder Drücken für Start/Stopp.
 - **Text-Cleanup**: Apple Intelligence (on-device), Claude CLI, Codex CLI oder Aus.
 - **Meeting-Zusammenfassung**: eigener Provider oder "Wie Text-Cleanup".
+- **Wörterbuch bearbeiten…**: öffnet `vocabulary.txt` im Standard-Editor, legt die Datei beim ersten Mal mit Anleitung an.
 - **Meeting aufnehmen / beenden**: siehe oben.
 - **Sprache**: System, Deutsch oder English.
 - **Mikrofon**: Automatisch (eingebautes Mikrofon bevorzugt) oder ein festes Gerät. Bluetooth-Mikros wie AirPods werden nie automatisch gewählt, weil sie sonst auf das schlechtere HFP-Profil umschalten und die Wiedergabe leidet.
@@ -136,6 +138,23 @@ Standard-Hotkey bis zur ersten Änderung: rechte ⌥ halten.
 - `hotkey.keyCode`: macOS Virtual Keycode, `modifiers`: CGEventFlags-Maske.
 - `inputDeviceUID`: `uniqueID` eines Audio-Eingabegeräts. `null` nimmt das eingebaute Mikrofon, sonst den System-Standard.
 
+## Wörterbuch
+
+Apples `SpeechTranscriber` kennt keine Projektbegriffe und nimmt auch keine Vokabelliste an (das kann nur der ältere `DictationTranscriber`, der im Test deutlich schlechter erkannte). Deshalb korrigiert trace-mem den erkannten Text nach der Transkription.
+
+`~/Library/Application Support/trace-mem/vocabulary.txt`, ein Begriff pro Zeile, `#` für Kommentare. Änderungen gelten ab dem nächsten Diktat, ohne Neustart.
+
+```
+Kubernetes
+# optional: hartnäckige Fehlerkennungen nach dem Doppelpunkt, kommagetrennt
+Clintview: Clinvef, Klint wju
+```
+
+- Getrennt erkannte Begriffe ("Clint View", "Clint-View") und abweichende Groß-/Kleinschreibung werden immer ersetzt.
+- Leicht falsch erkannte Schreibweisen werden ab 7 Buchstaben ersetzt (1 Abweichung, ab 9 Buchstaben 2), kürzere Begriffe nur exakt. Gebeugte Formen ("Clintviews") und Wörter über Satzzeichen hinweg bleiben unangetastet.
+- Die Korrektur läuft vor dem Cleanup, greift also auch mit Provider "Aus" oder wenn der Cleanup scheitert.
+- Ist ein Cleanup-Provider aktiv, bekommt das Sprachmodell die Begriffsliste und ersetzt auch stärker verhörte Varianten ("Clintweef").
+
 ## Aufbau
 
 ```
@@ -153,11 +172,12 @@ Sources/TraceMem/
   Injector.swift          Pasteboard-Snapshot, ⌘V, Restore
   MicSelection.swift      Mikrofonwahl: Nutzer → eingebaut → Standard
   Cleanup.swift           Text-Cleanup und Meeting-Zusammenfassung: Apple FoundationModels / claude / codex
+  Vocabulary.swift        Wörterbuch: vocabulary.txt parsen, Fehlerkennungen durch Begriffe ersetzen
   SystemAudioTap.swift    Core Audio Process Tap → PCM-Chunks
   MeetingSession.swift    Mikrofon + System-Tap → zwei Transcriber → TranscriptWriter
   TranscriptWriter.swift  chronologisches, inkrementelles Markdown
   Diag.swift              Log nach ~/Library/Logs/trace-mem.log und Unified Logging
-Tests/TraceMemTests/      Matcher, Capture, Settings, Pasteboard, Cleanup, TranscriptWriter, Buffer-Copy
+Tests/TraceMemTests/      Matcher, Capture, Settings, Pasteboard, Cleanup, Vocabulary, TranscriptWriter, Buffer-Copy
 Resources/Info.plist      Bundle-ID dev.theinemann.trace-mem, Usage-Descriptions
 Resources/AppIcon.icns    App-Icon, erzeugt von scripts/make-icon.swift
 scripts/bundle.sh         swift build → .app → codesign
@@ -188,4 +208,4 @@ Release-Builds laufen lokal, weil GitHub-Runner noch kein Xcode 27 haben. Notari
 
 ## Nicht im Umfang
 
-Cloud-STT, Whisper, Sprecher-Diarization innerhalb einer Audioquelle, eigenes Vokabular, App-Store-Vertrieb, andere Plattformen.
+Cloud-STT, Whisper, Sprecher-Diarization innerhalb einer Audioquelle, Editor-Oberfläche fürs Wörterbuch, App-Store-Vertrieb, andere Plattformen.

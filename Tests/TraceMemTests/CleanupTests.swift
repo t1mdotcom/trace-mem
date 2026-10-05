@@ -20,7 +20,7 @@ import Testing
 
 @Test func providerNoneReturnsRaw() async {
     var s = Settings(); s.provider = .none
-    let r = await Cleanup.run("ähm hallo", settings: s)
+    let r = await Cleanup.run("ähm hallo", terms: ["Clintview"], settings: s)
     #expect(r.text == "ähm hallo" && r.failure == nil)
 }
 
